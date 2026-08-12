@@ -1,8 +1,13 @@
 # Renvor site (V7 landing page) — repository ignore rules
 #
-# This repository is PRIVATE and currently EMPTY. Nothing here has been committed or
-# pushed; the first commit is gated on T095–T098 (release honesty, installation commands,
-# CTA destinations, and the website-code licence and brand-asset terms).
+# This repository is PRIVATE. The V7 landing source was committed on 2026-08-12; the
+# "currently empty, nothing committed" note that stood here is obsolete.
+#
+# T095–T098 (release honesty, installation commands, CTA destinations, and the
+# website-code licence and brand-asset terms) are COMPLETE as of 2026-08-12.
+#
+# The site is still NOT deployed and nothing is published. Deployment is blocked by
+# gates outside this repository: T101, T102, T106, T108, and T111.
 #
 # Scope: keep dependencies, build output, caches, local state, and credentials out of Git.
 # A file being ignored is not the same as a file being safe to create — see the credentials
