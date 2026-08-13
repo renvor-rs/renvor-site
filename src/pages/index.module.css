@@ -1195,3 +1195,197 @@
   .panoramaIntro,
   .panoramaPanel { width: 100%; min-height: auto; }
 }
+
+/* ── Release-honesty surfaces (T095–T097) ─────────────────────────────────────
+   These carry the development-status disclosure. They are built from the same
+   tokens as the rest of the page, so they inherit light/dark automatically and
+   need no [data-theme] overrides of their own.
+
+   The status notice is deliberately NOT animated and NOT inside any GSAP
+   timeline: a disclosure that fades in is a disclosure that is absent for the
+   first frames, absent under reduced motion, and absent if scripting fails. */
+
+.statusNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: 1240px;
+  margin: 20px auto 0;
+  padding: 16px 20px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--amber) 14%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--amber) 52%, transparent);
+  border-radius: 16px;
+}
+
+.statusNotice > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--amber);
+}
+
+.statusNotice p {
+  flex: 1 1 320px;
+  margin: 0;
+  font-size: .95rem;
+  line-height: 1.5;
+}
+
+.statusNotice strong { font-weight: 640; }
+
+.statusNotice a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 8px 14px;
+  color: var(--ink);
+  font-size: .85rem;
+  font-weight: 560;
+  text-decoration: none;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rule) 80%, transparent);
+  border-radius: 999px;
+}
+
+.statusNotice a:hover { border-color: var(--amber); }
+
+.roadmapBadge {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  margin-bottom: 12px;
+  padding: 5px 11px;
+  color: var(--muted);
+  font: 560 .7rem/1 var(--ifm-font-family-monospace);
+  letter-spacing: .04em;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--rule) 26%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rule) 74%, transparent);
+  border-radius: 999px;
+}
+
+/* Commands that cannot be run. The line-through carries the meaning on its own;
+   an earlier version also dimmed these to 62% opacity, which measured 2.70:1 on
+   the .solutionSideA gradient and 4.23:1 on .solutionSideB — a disclosure that
+   is hard to read is not a disclosure, so the dimming is gone. */
+.unavailableCommand {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.unavailableNote,
+.mockupNote,
+.panoramaCaveat {
+  display: block;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: .78rem;
+  font-style: normal;
+  line-height: 1.45;
+}
+
+.mockupCaption,
+.packageCaveat,
+.docsCaveat {
+  max-width: 62ch;
+  margin: 16px auto 0;
+  color: var(--muted);
+  font-size: .87rem;
+  line-height: 1.5;
+}
+
+.mockupCaption { padding: 0 22px 20px; }
+.mockupCaption code,
+.packageCaveat code {
+  padding: 1px 5px;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: .82em;
+  background: color-mix(in srgb, var(--rule) 34%, transparent);
+  border-radius: 5px;
+}
+
+.packageCaveat { margin-bottom: 26px; text-align: center; }
+.docsCaveat { margin-bottom: 4px; }
+
+/* No opacity here. At .85 this measured 4.04:1 against the page background at
+   9.9px, under the 4.5:1 needed for small text; at full strength it is 5.57:1. */
+.unpublishedTag {
+  color: var(--muted) !important;
+}
+
+@media (max-width: 720px) {
+  .statusNotice {
+    flex-wrap: wrap;
+    margin: 14px 16px 0;
+    padding: 14px 16px;
+  }
+  .statusNotice a { margin-left: 31px; }
+  .mockupCaption { padding: 0 16px 16px; }
+}
+
+/* ── Fixed-surface corrections ────────────────────────────────────────────────
+   Several surfaces on this page keep the same background in BOTH themes: the
+   hero product card and the solution cards are white, the panorama panels are
+   pastel, and the docs section is dark. On those, a theme token like
+   --muted inverts underneath text that did not invert, so the token is wrong
+   and a literal colour is correct. This mirrors what the surrounding design
+   already does (.heroProduct sets #10243f, .docsSection sets #fff).
+
+   Measured against the composited background, worst case per surface:
+     light pastels (#dae4ff … #ffebc6) with #3d4a63 → 6.98:1 … 7.59:1
+     docs section  (#09172d)          with #b8c8df → 10.63:1
+
+   Scoping matters here and is easy to get wrong: .solutionSideA DOES follow the
+   theme, so it keeps var(--muted) and must not be captured by these rules,
+   while .solutionMain (white), .solutionSideB (pink), the panorama panels
+   (pastel), .panoramaIntro (dark) and .docsSection (dark) do not. */
+
+/* Fixed LIGHT surfaces — dark ink. */
+.heroProduct .mockupCaption,
+.solutionMain .roadmapBadge,
+.solutionSideB .roadmapBadge,
+.solutionSideB .unavailableNote,
+.panoramaPanel .roadmapBadge,
+.panoramaPanel .mockupNote {
+  color: #3d4a63;
+}
+
+.solutionMain .roadmapBadge,
+.solutionSideB .roadmapBadge,
+.panoramaPanel .roadmapBadge {
+  background: rgba(61, 74, 99, .07);
+  border-color: rgba(61, 74, 99, .26);
+}
+
+/* Fixed DARK surfaces — light ink. */
+.panoramaIntro .panoramaCaveat { color: #b8c8df; }
+
+/* .authStarter is a dark card in BOTH themes, so var(--muted) fails in light
+   (2.54:1 measured on its #122743 face). */
+.authStarter .roadmapBadge {
+  color: #fff;
+  background: rgba(255, 255, 255, .16);
+  border-color: rgba(255, 255, 255, .38);
+}
+
+/* The docs section's decorative spectrum paints bright bars behind this text, so
+   the section's flat #09172d is not the worst case. Measured against the
+   brightest sampled bar (167,71,91): #b8c8df gives 3.35:1, #e8eefa gives 4.88:1. */
+.docsSection .docsCaveat { color: #e8eefa; }
+
+/* .solutionSideA is a fixed blue→violet gradient card carrying white text in both
+   themes, so var(--muted) fails on it either way — 1.27:1 in light. Pure white is
+   used rather than the card's own rgba(255,255,255,.76) because the gradient's
+   lighter end (#3267ff) leaves only 4.60:1 even at full white; .76 would give
+   3.4:1. Measured against both gradient stops. */
+.solutionSideA .roadmapBadge,
+.solutionSideA .unavailableNote {
+  color: #fff;
+}
+
+.solutionSideA .roadmapBadge {
+  background: rgba(255, 255, 255, .16);
+  border-color: rgba(255, 255, 255, .38);
+}

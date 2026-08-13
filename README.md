@@ -13,21 +13,57 @@
 > ## Not deployed, and not ready to be
 >
 > **Renvor is in development. No crate is published, no release exists, and this site has
-> never been deployed.** Four gates are open, and every one of them blocks the first commit
-> to this repository — not merely the deployment.
+> never been deployed.** `renvor` and `renvor-cli` both return HTTP 404 from the crates.io
+> registry index, verified 2026-08-12.
 
 ## Status
 
-| Gate | Blocks |
-|---|---|
-| **T095** | A prominent development-status notice, and every present-tense capability claim reworded to state its actual status |
-| **T096** | The `renover new` / `renover add` installation commands, which reference crates nobody can install |
-| **T097** | Three CTA destinations that do not resolve |
-| **T098** | The **website-code licence** and the **brand-asset usage terms** |
+The four content and licensing gates on this repository are **complete**. The site is still
+**not deployed**, and deployment is blocked by other gates listed below.
 
-**T098 is the one that binds this README.** Brand assets are **not** covered by the
-framework's `MIT OR Apache-2.0` grant, and the terms that do cover them have not been
-decided. Until they are, the mark above is used only inside this private repository.
+| Gate | State | Covered |
+|---|---|---|
+| **T095** | **Complete 2026-08-12** | A prominent development-status notice, and every present-tense capability claim reworded to state its actual status |
+| **T096** | **Complete 2026-08-12** | The `renover new` / `renover add` installation commands, which reference crates nobody can install |
+| **T097** | **Complete 2026-08-12** | CTA destinations that do not resolve |
+| **T098** | **Complete 2026-08-12** | The **website-code licence** and the **brand-asset usage terms** — see [Licence](#licence) |
+
+**T095, T096, and T097 closed on maintainer review of the rendered page.** Ahmed Anbar
+reviewed the production build on desktop and mobile, in both light and dark themes, on
+**2026-08-12**, and approved the presentation, the development-status disclosure, the
+planned-version labels, the non-installable CLI demonstrations, the GitHub-only links, the
+responsive layout, the accessibility behaviour, the reduced-motion behaviour, and the
+animations. **The review is recorded in the framework evidence ledger at
+`governance/phase-001-evidence.md` §3aq**, which holds the reviewed source-set and
+build-output hashes; they are deliberately not duplicated here, so there is one place to keep
+correct.
+
+> **That approval covers the truthful presentation of the current development state, and
+> nothing more.** It is **not** a release, publication, or deployment authorisation. Renvor is
+> still in development: **no crate is published**, **no release exists**, the documentation
+> site is **not deployed**, and this site has **never been deployed**.
+
+**T098 is complete.** The website code is `MIT OR Apache-2.0`; the Renvor names, marks, and
+brand assets are all rights reserved under [BRAND-POLICY.md](BRAND-POLICY.md). The code
+licences grant no trademark or brand-identity rights.
+
+**Deployment remains blocked** by gates outside this repository — CSP compatibility (T101),
+server re-verification (T102), the backup ruling (T106), the unresolved `image-size`
+advisories (T108), and the absent `CAA` record (T111). ADR-0006 remains `proposed`.
+
+## What the page now claims
+
+Every capability on the landing page carries the release that owns it, taken from the
+framework's `PLAN.md` rather than invented here:
+
+| Release | Scope |
+|---|---|
+| **1.0** | REST + OpenAPI, persistence (SQLx/SeaORM, PostgreSQL/MySQL), backend authentication, lifecycle and diagnostics |
+| **2.0** | GraphQL |
+| **3.0** | Frontend matrix (Next.js, Yew, Dioxus, Leptos), Tauri desktop, frontend authentication screens |
+| **4.0** | Package ecosystem, including RBAC |
+
+A claim rendered without a release label is a release-honesty defect.
 
 ## Stack
 
@@ -76,6 +112,28 @@ without the preference.
 
 ## Licence
 
-**Undecided — see T098.** Neither the website code nor the brand assets in this repository
-carry a licence yet. The framework's `MIT OR Apache-2.0` grant covers
-[`renvor-rs/renvor`](https://github.com/renvor-rs/renvor) and does **not** extend here.
+**Decided 2026-08-12 (T098).** The two questions are answered separately, because they are
+separate questions.
+
+**Website source code** — licensed under either of:
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
+- MIT license ([LICENSE-MIT](LICENSE-MIT))
+
+at your option. The same terms as the framework.
+
+**Renvor names, logos, marks, and illustrations** — **all rights reserved**, governed by
+[BRAND-POLICY.md](BRAND-POLICY.md).
+
+**The code licences grant no trademark or brand-identity rights.** Apache-2.0 says so
+explicitly in its section 6, and MIT is silent on trademarks rather than granting them. That
+separation is deliberate and conventional: the code is free so anyone can build on it, and the
+name is controlled so users can tell what is genuinely Renvor.
+
+The brand policy permits, without asking: truthful nominative references, links to the
+official project, screenshots, and community discussion — including criticism. It requires
+permission first for: confusingly similar branding, endorsement or official-status claims,
+merchandise, and branding a fork as official Renvor.
+
+**The archived historical branding directories are outside every repository, unpublished, and
+not covered by any licence or by the brand policy.**
