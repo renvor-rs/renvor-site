@@ -39,6 +39,10 @@ playwright-report/
 test-results/
 .playwright-mcp/
 
+# SBOMs and scan reports are produced by CI from the image and the lockfile. They describe
+# one build, so committing one would be committing a claim that goes stale silently.
+sbom/
+
 # --- Environment and credentials (never commit) ---
 .env
 .env.*

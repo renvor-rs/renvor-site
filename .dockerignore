@@ -1,0 +1,82 @@
+# Renvor site — build-context exclusions.
+#
+# This file decides what the Docker daemon is even allowed to see. It is a confidentiality
+# boundary before it is a performance optimisation: anything listed here cannot be copied
+# into an image by accident, including by a future `COPY . .` that someone adds without
+# thinking about it.
+#
+# The runtime stage copies only the generated site, so most of this never reaches a shipped
+# layer regardless. That is defence in depth, not a reason to relax the list.
+
+# --- Dependencies and package-manager state ---
+# Installed inside the builder from the committed lockfile. Copying a host tree in would
+# defeat `--frozen-lockfile` and could carry platform-specific binaries for the wrong arch.
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+
+# --- Generated output and caches ---
+# The image builds these itself. Copying a host build in would let the shipped site drift
+# from the source that supposedly produced it — the same reason they are git-ignored.
+build/
+.docusaurus/
+.cache-loader/
+*.tsbuildinfo
+
+# --- Validation output ---
+# Produced by the accessibility and container checks. Evidence of a run, never an input.
+playwright-report/
+test-results/
+.playwright-mcp/
+sbom/
+inspection/
+*.screenshot.png
+
+# --- Version control ---
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# --- Environment and credentials (never build, never ship) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials
+credentials.*
+secrets/
+*.secret
+
+# --- Editor, IDE, and local agent state ---
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+.claude/
+.claude-flow/
+.specify/
+.remember/
+
+# --- Operating-system artefacts ---
+.DS_Store
+Thumbs.db
+
+# --- Logs and temporary files ---
+*.log
+npm-debug.log*
+yarn-error.log*
+tmp/
+*.tmp
+
+# --- Container definition and documentation ---
+# The build does not need to read its own Dockerfile. No Markdown is an input either: the
+# Docusaurus preset runs with `docs: false` and `blog: false`, so the site is built from
+# `src/` and `static/` alone.
+Dockerfile
+.dockerignore
+*.md
