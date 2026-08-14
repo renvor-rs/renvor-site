@@ -217,12 +217,18 @@ jobs:
       # inventory: roughly 1,180 packages resolved from the committed lockfile. This job
       # never installs, so the checkout is clean source and Syft catalogues from
       # pnpm-lock.yaml rather than from a node_modules tree.
+      # sbom-action writes `output-file` without creating its parent, so the directory has
+      # to exist first or the step fails with ENOENT after Syft has already done the work.
+      - name: Create the SBOM output directory
+        run: mkdir -p sbom
+
       - name: Generate the dependency SBOM
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           path: .
           format: spdx-json
           output-file: sbom/renvor-site-dependencies.spdx.json
+          syft-version: v1.51.0
           upload-artifact: false
           dependency-snapshot: false
 
@@ -349,12 +355,20 @@ jobs:
       # it is why the `dependencies` job also produces an SBOM of the tree that built the
       # site — that one has the ~1,180 entries. Uploaded by the step below rather than by the
       # action so it carries the same explicit retention as every other artifact here.
+      # sbom-action writes `output-file` without creating its parent, so the directory has
+      # to exist first or the step fails with ENOENT after Syft has already done the work.
+      - name: Create the SBOM output directory
+        run: mkdir -p sbom
+
       - name: Generate the runtime SBOM
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           image: renvor-site:ci
           format: spdx-json
           output-file: sbom/renvor-site.spdx.json
+          # Pinned rather than left to the action's default, so CI produces the SBOM with the
+          # same Syft that was validated locally.
+          syft-version: v1.51.0
           upload-artifact: false
           dependency-snapshot: false
 
