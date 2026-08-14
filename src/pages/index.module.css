@@ -234,13 +234,13 @@
   flex-direction: column;
   gap: 21px;
   padding: 32px 24px;
-  color: #778397;
+  color: #657184;
   background: #f4f7fc;
   border-right: 1px solid #dfe6f0;
   font: 560 .68rem/1.2 var(--ifm-font-family-monospace);
 }
 
-.productBody aside strong { color: #3267ff; }
+.productBody aside strong { color: #0c4bff; }
 
 .productQuestion {
   padding: 48px clamp(30px, 5vw, 68px);
@@ -289,7 +289,7 @@
 }
 
 .productOutput code {
-  color: #b8c8df;
+  color: #4b71a7;
   font-size: .78rem;
   line-height: 1.9;
 }
@@ -403,7 +403,7 @@
 .solutionSwitcher button {
   min-height: 42px;
   padding: 9px 15px;
-  color: #65758c;
+  color: #5b697e;
   background: transparent;
   border: 0;
   border-radius: 7px;
@@ -413,7 +413,7 @@
 
 .solutionSwitcher button[aria-selected='true'] {
   color: #fff;
-  background: #3267ff;
+  background: #0c4bff;
 }
 
 .solutionContent {
@@ -427,7 +427,7 @@
 .solutionContent > div:first-child > svg {
   width: 32px;
   height: 32px;
-  color: #3267ff;
+  color: #0c4bff;
 }
 
 .solutionContent h3,
@@ -444,7 +444,7 @@
 .solutionContent p,
 .solutionSideA p,
 .solutionSideB p {
-  color: #65758c;
+  color: #5b697e;
   line-height: 1.58;
 }
 
@@ -509,7 +509,7 @@
 
 .solutionSideA {
   color: #fff;
-  background: linear-gradient(145deg, #3267ff, #7048e8);
+  background: linear-gradient(145deg, #0c4bff, #7048e8);
 }
 
 .solutionSideB {
@@ -623,8 +623,8 @@
 .amber { background: #ffebc6; }
 .mint { background: #d3f4ec; }
 
-.panoramaCopy > span { color: #64748b; }
-.panoramaCopy > p { margin-top: 70px; color: #3267ff; }
+.panoramaCopy > span { color: #556377; }
+.panoramaCopy > p { margin-top: 70px; color: #0c4bff; }
 
 .panoramaCopy h3 {
   max-width: 660px;
@@ -664,7 +664,7 @@
 }
 
 .wizardVisual > span {
-  color: #64748b;
+  color: #556377;
   font: 600 .72rem/1 var(--ifm-font-family-monospace);
 }
 
@@ -686,8 +686,8 @@
   border-radius: 8px;
 }
 
-.selectedWizardOption { color: #fff; background: #3267ff; border-color: #3267ff; }
-.wizardVisual code { margin-top: 12px; color: #65758c; font-size: .7rem; }
+.selectedWizardOption { color: #fff; background: #0c4bff; border-color: #0c4bff; }
+.wizardVisual code { margin-top: 12px; color: #5b697e; font-size: .7rem; }
 
 .routesVisual {
   display: grid;
@@ -874,7 +874,7 @@
   font: 580 .65rem/1 var(--ifm-font-family-monospace);
 }
 
-.authFlow i { height: 1px; background: linear-gradient(90deg, #3267ff, #ff91a0); }
+.authFlow i { height: 1px; background: linear-gradient(90deg, #0c4bff, #ff91a0); }
 
 .operationsSection {
   display: grid;
@@ -930,7 +930,7 @@
   grid-template-columns: minmax(220px, .45fr) minmax(0, 1.55fr);
   min-height: 690px;
   color: #fff;
-  background: linear-gradient(145deg, #3267ff, #7048e8 58%, #f75f72);
+  background: linear-gradient(145deg, #0c4bff, #7048e8 58%, #f75f72);
 }
 
 .evaluationControls {
@@ -1025,7 +1025,7 @@
   transform: rotate(-14deg);
 }
 
-.docsSpectrum i:nth-child(1) { top: 10%; left: 0; background: #3267ff; }
+.docsSpectrum i:nth-child(1) { top: 10%; left: 0; background: #0c4bff; }
 .docsSpectrum i:nth-child(2) { top: 34%; left: 34%; background: #7048e8; }
 .docsSpectrum i:nth-child(3) { top: 56%; left: 3%; background: #f75f72; }
 .docsSpectrum i:nth-child(4) { top: 74%; left: 42%; background: #f7a928; }
@@ -1378,7 +1378,7 @@
 /* .solutionSideA is a fixed blue→violet gradient card carrying white text in both
    themes, so var(--muted) fails on it either way — 1.27:1 in light. Pure white is
    used rather than the card's own rgba(255,255,255,.76) because the gradient's
-   lighter end (#3267ff) leaves only 4.60:1 even at full white; .76 would give
+   lighter end (#0c4bff) leaves only 4.60:1 even at full white; .76 would give
    3.4:1. Measured against both gradient stops. */
 .solutionSideA .roadmapBadge,
 .solutionSideA .unavailableNote {
@@ -1389,3 +1389,34 @@
   background: rgba(255, 255, 255, .16);
   border-color: rgba(255, 255, 255, .38);
 }
+
+/* ── Contrast pass, 2026-08-14 ────────────────────────────────────────────────
+   Automated WCAG 2.1 AA checking was added to this repository (tests/a11y), and
+   it found 17 foreground/background pairs on this page below the 1.4.3 minimum.
+   They were authored colours, not animation artefacts: they reproduce under
+   `prefers-reduced-motion`, where GSAP writes no inline styles at all.
+
+   Each foreground below was darkened along its own hue and saturation until it
+   cleared 4.60:1 against the worst surface it is actually set on — the small
+   margin over 4.5:1 is there so sub-pixel rounding cannot flip the result.
+   Backgrounds were left alone, because the pastel panels carry the page's
+   colour identity and the text does not.
+
+     #778397 → #657184   hero aside          on #f4f7fc   3.57 → 4.60
+     #b8c8df → #4b71a7   product output code on #f6f7f8   1.58 → 4.64
+     #65758c → #5b697e   card body copy      on #ffe3e8   3.88 → 4.62
+     #64748b → #556377   panorama labels     on #e3dcff   3.61 → 4.64
+     #56657b → #536176   --muted, navbar     on #dadde3   4.36 → 4.62
+     #3267ff → #0c4bff   --blue, accents     on #e3dcff   3.52 → 4.60
+
+   --blue changed everywhere rather than only where it is text, so the page keeps
+   one brand blue. Used as a fill it only deepens, which raises the white text on
+   .solutionSideA's gradient above the 4.60:1 noted further up rather than below.
+
+   Two deliberate non-changes: .panoramaIntro .panoramaCaveat keeps #b8c8df,
+   because it sits on the dark #09172d intro at 10.63:1, and the decorative
+   aria-hidden icons are exempt from 1.4.3 entirely.
+
+   Note for reviewers: this alters the rendered page, so the T095–T097 visual
+   approval recorded on 2026-08-12 no longer covers what ships. It needs to be
+   re-taken against this build. */
