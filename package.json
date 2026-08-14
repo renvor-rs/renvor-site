@@ -8,7 +8,10 @@
     "build": "docusaurus build",
     "serve": "docusaurus serve",
     "clear": "docusaurus clear",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:a11y": "playwright test",
+    "check:links": "lychee --config lychee.toml --root-dir \"$PWD/build\" --no-progress 'build/**/*.html'",
+    "validate": "pnpm run typecheck && pnpm run build && pnpm run test:a11y && pnpm run check:links"
   },
   "dependencies": {
     "@docusaurus/core": "3.10.2",
@@ -25,13 +28,18 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@docusaurus/module-type-aliases": "3.10.2",
     "@docusaurus/tsconfig": "3.10.2",
     "@docusaurus/types": "3.10.2",
+    "@playwright/test": "1.62.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
+    "axe-core": "4.13.0",
     "typescript": "5.9.3"
   },
-  "engines": {"node": ">=24.0"},
+  "engines": {
+    "node": ">=24.0"
+  },
   "packageManager": "pnpm@11.21.0"
 }
