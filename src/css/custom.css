@@ -2,13 +2,15 @@
 @import '@fontsource-variable/geist-mono/wght.css';
 
 :root {
-  --ifm-color-primary: #3267ff;
-  --ifm-color-primary-dark: #1652ff;
-  --ifm-color-primary-darker: #0949ff;
-  --ifm-color-primary-darkest: #0037d9;
-  --ifm-color-primary-light: #4e7cff;
-  --ifm-color-primary-lighter: #5b85ff;
-  --ifm-color-primary-lightest: #84a4ff;
+  /* Tracks --blue. Recomputed from the new primary using the same lightness deltas the
+     previous ramp used, so the seven steps keep their original spacing and ordering. */
+  --ifm-color-primary: #0c4bff;
+  --ifm-color-primary-dark: #003eef;
+  --ifm-color-primary-darker: #003be2;
+  --ifm-color-primary-darkest: #002eb3;
+  --ifm-color-primary-light: #2860ff;
+  --ifm-color-primary-lighter: #3569ff;
+  --ifm-color-primary-lightest: #5e88ff;
   --ifm-background-color: #f6f8fc;
   --ifm-background-surface-color: #edf1f8;
   --ifm-font-color-base: #10243f;
@@ -19,9 +21,17 @@
   --canvas: #f6f8fc;
   --surface: #ffffff;
   --ink: #10243f;
-  --muted: #56657b;
+  /* Was #56657b, which measured 4.35:1 against the scrolled navbar's #dadde3 — under the
+     4.5:1 required by WCAG 1.4.3 for text below 18.66px. Darkened along the same hue to
+     4.62:1. */
+  --muted: #536176;
   --rule: #d8e0ec;
-  --blue: #3267ff;
+  /* Was #3267ff. As text it measured 4.32:1 on the hero aside, 4.37:1 on the canvas, and
+     as low as 3.52:1 on the violet panorama panel (#e3dcff) — all short of 4.5:1. Darkened
+     along the same hue to clear 4.60:1 against every surface it is set on, the worst being
+     that violet panel. Used as a fill it only gets darker, so the white text sitting on
+     .solutionSideA's gradient improves too. */
+  --blue: #0c4bff;
   --action-ink: #ffffff;
   --violet: #7048e8;
   --coral: #f75f72;

@@ -1,0 +1,381 @@
+# Landing release-candidate checks.
+#
+# Every third-party action is pinned to a full commit SHA rather than a tag. A tag is a
+# mutable pointer, so `@v4` means "whatever that account publishes next"; a SHA means the
+# reviewed code. The trailing comment records which release the SHA came from, because a
+# bare 40-character hash tells a reviewer nothing about whether it is current.
+#
+# This workflow validates. It does not publish, deploy, or authenticate anywhere: no
+# registry login, no environment, no server access, and no secret beyond the automatic
+# GITHUB_TOKEN that the link checker uses for GitHub API rate limits.
+
+name: landing-ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Read-only by default, and no job widens it. Nothing here writes to the repository, so
+# nothing needs permission to. Publishing scan results to code scanning would require
+# `security-events: write`, which is why the scanners below gate on exit code and upload
+# their reports as artifacts instead.
+permissions:
+  contents: read
+
+# A superseded push is not worth a runner. `main` is excluded so pushes to it always
+# complete — cancelling those would leave gaps in the record.
+concurrency:
+  group: landing-ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  # Every job installs Node from `.nvmrc`, so the version lives in exactly one place and CI
+  # cannot drift from what a developer gets by running `nvm use`.
+  NODE_VERSION_FILE: .nvmrc
+
+jobs:
+  # ── Typecheck and build ────────────────────────────────────────────────────────────
+  build:
+    name: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # No version is pinned here on purpose: the action reads `packageManager` from
+      # package.json, so pnpm 11.21.0 comes from the same declaration the lockfile was
+      # produced with. Stating it twice would let the two drift apart.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - name: Set up Node from .nvmrc
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: ${{ env.NODE_VERSION_FILE }}
+          cache: pnpm
+
+      - name: Report the resolved toolchain
+        run: |
+          echo "node    $(node --version)   (.nvmrc requests $(cat .nvmrc))"
+          echo "pnpm    $(pnpm --version)   (packageManager pins $(node -p "require('./package.json').packageManager"))"
+
+      # `--frozen-lockfile` makes the committed lockfile authoritative. If package.json and
+      # the lockfile disagree, this fails rather than resolving something new and testing a
+      # dependency tree that was never reviewed.
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      # Removing the generated directories first means the build cannot pass by reusing
+      # output from an earlier state of the source.
+      - name: Build from clean generated directories
+        run: |
+          rm -rf build .docusaurus
+          pnpm run build
+          test -f build/index.html
+          test -f build/404.html
+
+      - name: Upload the built site
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: build-output
+          path: build
+          retention-days: 30
+          if-no-files-found: error
+
+  # ── Accessibility ──────────────────────────────────────────────────────────────────
+  accessibility:
+    name: accessibility
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - name: Set up Node from .nvmrc
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: ${{ env.NODE_VERSION_FILE }}
+          cache: pnpm
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      # The browser build is keyed to the Playwright version, so the cache is only reused
+      # while it is genuinely the same browser.
+      - name: Restore the Playwright browser cache
+        id: playwright-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # Scanned against the built artifact from the `build` job, not a fresh local build, so
+      # accessibility is asserted about the same bytes that were typechecked and built.
+      - name: Download the built site
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: build-output
+          path: build
+
+      # Covers desktop 1440x900 and mobile 390x844, the landing route before and after
+      # scroll, all four solution tab panels, every evaluation-lens state, and the 404
+      # document. Zero WCAG 2.1 A/AA violations are tolerated.
+      - name: Run the accessibility suite
+        run: pnpm run test:a11y
+
+      - name: Upload the accessibility report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: accessibility-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # ── Link checking ──────────────────────────────────────────────────────────────────
+  links:
+    name: links
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download the built site
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: build-output
+          path: build
+
+      # `fail` defaults to true in this release and is stated anyway, because a link checker
+      # that does not fail the build is a report nobody reads. `--root-dir` must be absolute,
+      # which is why it is passed here rather than committed into lychee.toml.
+      - name: Check links in the built output
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          lycheeVersion: v0.24.2
+          fail: true
+          failIfEmpty: true
+          args: >-
+            --config lychee.toml
+            --root-dir ${{ github.workspace }}/build
+            --no-progress
+            build/**/*.html
+
+  # ── Dependency advisories ──────────────────────────────────────────────────────────
+  dependencies:
+    name: dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The runtime image is a scratch image holding static files and one static binary, so
+      # it has no OS package database and no dependency manifest — the image scan below has
+      # almost nothing to look at, by design. The dependency tree that produces the site is
+      # where advisories actually live, so it is scanned directly. Exceptions live in
+      # .trivyignore.yaml, each with a stated reason and an expiry date.
+      - name: Scan the dependency tree
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          ignore-unfixed: false
+          trivyignores: .trivyignore.yaml
+          skip-dirs: node_modules,build,.docusaurus
+          format: table
+
+      # The runtime SBOM below is empty by construction, so this is the one that carries the
+      # inventory: roughly 1,180 packages resolved from the committed lockfile. This job
+      # never installs, so the checkout is clean source and Syft catalogues from
+      # pnpm-lock.yaml rather than from a node_modules tree.
+      # sbom-action writes `output-file` without creating its parent, so the directory has
+      # to exist first or the step fails with ENOENT after Syft has already done the work.
+      - name: Create the SBOM output directory
+        run: mkdir -p sbom
+
+      - name: Generate the dependency SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: .
+          format: spdx-json
+          output-file: sbom/renvor-site-dependencies.spdx.json
+          syft-version: v1.51.0
+          upload-artifact: false
+          dependency-snapshot: false
+
+      - name: Upload the dependency SBOM
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dependency-sbom
+          path: sbom/renvor-site-dependencies.spdx.json
+          retention-days: 30
+          if-no-files-found: error
+
+  # ── Container ──────────────────────────────────────────────────────────────────────
+  container:
+    name: container
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Normalises timestamps written into the image so two builds of the same commit are
+      # comparable. Taken from the commit itself rather than the clock.
+      - name: Build the production image
+        run: |
+          SOURCE_DATE_EPOCH="$(git log -1 --pretty=%ct)"
+          export SOURCE_DATE_EPOCH
+          echo "SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}"
+          docker build --file Dockerfile --tag renvor-site:ci .
+
+      - name: Report the image size and configuration
+        run: |
+          docker image inspect renvor-site:ci \
+            --format 'size={{.Size}} user={{.Config.User}} entrypoint={{.Config.Entrypoint}} exposed={{.Config.ExposedPorts}}'
+
+      # Proves the runtime holds the generated site and the server binary and nothing else.
+      # This is an assertion rather than a printout: if source, a package manager, or a shell
+      # ever reaches the shipped layer, the job fails here.
+      #
+      # The image's own layers are inspected rather than `docker export`, because export
+      # materialises the daemon's mounts (/proc, /sys, /dev, /etc/hosts) that are not part of
+      # the image — checking those would mean allow-listing paths that were never shipped.
+      # This is an allow-list, not a list of things to look out for: anything unexpected fails.
+      - name: Assert the runtime contains static output only
+        run: |
+          set -euo pipefail
+          docker save renvor-site:ci -o /tmp/image.tar
+          rm -rf /tmp/imgx && mkdir -p /tmp/imgx
+          tar -xf /tmp/image.tar -C /tmp/imgx
+          python3 - <<'PY'
+          import json, os, sys, tarfile
+
+          root = "/tmp/imgx"
+          blob = lambda d: os.path.join(root, "blobs", *d.split(":"))
+          manifest = json.load(open(blob(json.load(open(f"{root}/index.json"))["manifests"][0]["digest"])))
+          if "manifests" in manifest:
+              manifest = json.load(open(blob(manifest["manifests"][0]["digest"])))
+
+          entries = []
+          for layer in manifest["layers"]:
+              with tarfile.open(blob(layer["digest"])) as t:
+                  entries += [n.rstrip("/") for n in t.getnames() if n.strip("/")]
+
+          top = sorted({e.split("/")[0] for e in entries})
+          allowed = {"public", "static-web-server"}
+          print(f"layers={len(manifest['layers'])} entries={len(entries)} top-level={top}")
+
+          unexpected = sorted(set(top) - allowed)
+          if unexpected:
+              print(f"::error::runtime image contains unexpected top-level paths: {unexpected}")
+              sys.exit(1)
+          if not any(e.startswith("public/") for e in entries):
+              print("::error::runtime image contains no site output under /public")
+              sys.exit(1)
+          if "static-web-server" not in top:
+              print("::error::runtime image contains no server binary")
+              sys.exit(1)
+          print("runtime contains only the generated site and the server binary")
+          PY
+
+      # Runs the image the way it is meant to run: unprivileged user, every capability
+      # dropped, and a read-only root filesystem with no tmpfs. If the server needed to write
+      # anywhere, this would fail rather than quietly requiring a writable layer in production.
+      - name: Smoke-test the runtime under production constraints
+        run: |
+          set -euo pipefail
+          docker run -d --name renvor-smoke \
+            --read-only \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --user 65532:65532 \
+            -p 18080:8080 renvor-site:ci
+          for _ in $(seq 1 60); do
+            if [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/health)" = "200" ]; then
+              ready=1; break
+            fi
+            sleep 1
+          done
+          [ "${ready:-0}" = "1" ] || { echo "::error::/health never returned 200"; docker logs renvor-smoke; exit 1; }
+          echo "health      $(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/health)"
+          echo "index       $(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/)"
+          echo "missing     $(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/does-not-exist)"
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/)" = "200" ]
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/does-not-exist)" = "404" ]
+          docker rm -f renvor-smoke >/dev/null
+
+      - name: Scan the runtime image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: renvor-site:ci
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          ignore-unfixed: false
+          trivyignores: .trivyignore.yaml
+          format: table
+
+      # Generated from the image rather than from the lockfile, so it describes what is
+      # actually shipped. Expect it to catalogue no packages: the runtime is a scratch image
+      # holding static files and one statically linked binary with no cargo-auditable
+      # metadata, so there is genuinely nothing to inventory. That is the honest result, and
+      # it is why the `dependencies` job also produces an SBOM of the tree that built the
+      # site — that one has the ~1,180 entries. Uploaded by the step below rather than by the
+      # action so it carries the same explicit retention as every other artifact here.
+      # sbom-action writes `output-file` without creating its parent, so the directory has
+      # to exist first or the step fails with ENOENT after Syft has already done the work.
+      - name: Create the SBOM output directory
+        run: mkdir -p sbom
+
+      - name: Generate the runtime SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: renvor-site:ci
+          format: spdx-json
+          output-file: sbom/renvor-site.spdx.json
+          # Pinned rather than left to the action's default, so CI produces the SBOM with the
+          # same Syft that was validated locally.
+          syft-version: v1.51.0
+          upload-artifact: false
+          dependency-snapshot: false
+
+      - name: Upload the SBOM
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: runtime-sbom
+          path: sbom/renvor-site.spdx.json
+          retention-days: 30
+          if-no-files-found: error

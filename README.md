@@ -47,9 +47,17 @@ correct.
 brand assets are all rights reserved under [BRAND-POLICY.md](BRAND-POLICY.md). The code
 licences grant no trademark or brand-identity rights.
 
-**Deployment remains blocked** by gates outside this repository — CSP compatibility (T101),
-server re-verification (T102), the backup ruling (T106), the unresolved `image-size`
-advisories (T108), and the absent `CAA` record (T111). ADR-0006 remains `proposed`.
+**CSP compatibility (T101) is complete.** It was verified on 2026-08-14 against immutable
+site tree `e7fbc9d1438eaf58dee2c7d634dac4003b8664ec` under a local Enforcement
+harness: negative control 3/3 and full matrix 48/48 across Chromium, Firefox, and WebKit,
+with zero application CSP violations. This proves page compatibility only — no production
+response header was configured or enabled, and no Traefik middleware was written,
+configured, or enabled.
+
+**Deployment remains blocked** by the remaining Phase 001 deployment gates — server re-verification
+(T102), the backup ruling (T106), unresolved `image-size` advisories (T108), the absent
+`CAA` record (T111), and landing CI plus protected `main` (T113). ADR-0006 remains
+`proposed` pending T106.
 
 ## What the page now claims
 

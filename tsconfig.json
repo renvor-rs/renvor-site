@@ -1,5 +1,5 @@
 {
   "extends": "@docusaurus/tsconfig",
   "compilerOptions": {"strict": true, "noUncheckedIndexedAccess": true},
-  "include": ["src", "docusaurus.config.ts"]
+  "include": ["src", "tests", "docusaurus.config.ts", "playwright.config.ts"]
 }
