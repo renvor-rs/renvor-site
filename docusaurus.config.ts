@@ -7,6 +7,7 @@ const config: Config = {
   favicon: 'img/renvor-favicon-v7.svg',
   url: 'https://renvor.dev',
   baseUrl: '/',
+  baseUrlIssueBanner: false,
   organizationName: 'renvor-rs',
   projectName: 'renvor-site',
   onBrokenLinks: 'throw',
