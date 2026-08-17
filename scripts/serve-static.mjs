@@ -26,6 +26,7 @@
 
 import { createServer } from 'node:http';
 import { readFileSync, existsSync, statSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -119,34 +120,61 @@ function resolve(urlPath) {
  * subresource means the `load` event never fires and a navigation hangs until the test times
  * out. A 500 is a diagnosable failure; silence is not.
  */
-const server = createServer((req, res) => {
-  try {
-    if (req.url === '/health') {
-      res.writeHead(200, { 'Content-Type': 'text/plain' });
-      return res.end('ok');
-    }
-
-    const file = resolve(req.url ?? '/');
-    const target = file ?? join(OUT, '404.html');
-    const status = file ? 200 : 404;
-    const ext = extname(target);
-
-    let body = readFileSync(target);
+/* Files are read once and held in memory.
+ *
+ * `out/` is 1.9 MB — small enough to cache entirely, and doing so removes the reason this
+ * harness was slow: a synchronous `readFileSync` per request blocks the single Node thread,
+ * and a page load here is ~17 subresources across six parallel connections, times two browser
+ * workers. Under that pattern Firefox intermittently exceeded a 90-second navigation budget on
+ * a 1.9 MB site, which is not a plausible amount of work — it was queueing, not transferring.
+ *
+ * Serving from a Map also means no I/O can fail mid-response, which is the other way a
+ * connection ends up hanging with nothing written to it. */
+const cache = new Map();
+async function bodyFor(target, ext) {
+  const key = `${target}|${ext}`;
+  let hit = cache.get(key);
+  if (!hit) {
+    let raw = await readFile(target);
     if (CONTROL && ext === '.html') {
-      body = Buffer.from(body.toString('utf8').replace('</head>', `${CONTROL_SCRIPT}</head>`), 'utf8');
+      raw = Buffer.from(raw.toString('utf8').replace('</head>', `${CONTROL_SCRIPT}</head>`), 'utf8');
     }
-
-    res.writeHead(status, {
-      ...headersFor(file ? (req.url ?? '/') : '/404.html'),
-      'Content-Type': TYPES[ext] ?? 'application/octet-stream',
-      'Content-Length': body.length,
-    });
-    res.end(req.method === 'HEAD' ? undefined : body);
-  } catch (error) {
-    console.error(`[serve] ${req.method} ${req.url} failed:`, error);
-    if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'text/plain' });
-    res.end('internal error');
+    hit = raw;
+    cache.set(key, hit);
   }
+  return hit;
+}
+
+const server = createServer((req, res) => {
+  // Every path through this handler ends in a response, including the ones that throw. A
+  // browser cannot distinguish "the server errored" from "the server is still thinking": both
+  // are a pending connection, and one pending subresource means `load` never fires and the
+  // navigation hangs until the test times out. A 500 is diagnosable; silence is not.
+  void (async () => {
+    try {
+      if (req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        return res.end('ok');
+      }
+
+      const file = resolve(req.url ?? '/');
+      const target = file ?? join(OUT, '404.html');
+      const status = file ? 200 : 404;
+      const ext = extname(target);
+      const body = await bodyFor(target, ext);
+
+      res.writeHead(status, {
+        ...headersFor(file ? (req.url ?? '/') : '/404.html'),
+        'Content-Type': TYPES[ext] ?? 'application/octet-stream',
+        'Content-Length': body.length,
+      });
+      res.end(req.method === 'HEAD' ? undefined : body);
+    } catch (error) {
+      console.error(`[serve] ${req.method} ${req.url} failed:`, error);
+      if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('internal error');
+    }
+  })();
 });
 
 // A socket error must not take the process down mid-suite, and a half-open connection must not
@@ -156,11 +184,17 @@ server.on('clientError', (error, socket) => {
   if (!socket.destroyed) socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
 });
 
-// Longer than Node's 5s default and longer than any single test's navigation. Firefox holds
-// keep-alive connections open across a page load; a server-side idle close mid-load shows up
-// as a stalled subresource rather than as a retry.
-server.keepAliveTimeout = 30_000;
-server.headersTimeout = 35_000;
+// Node's defaults, restored. An earlier revision raised these to 30s on the theory that a
+// mid-load idle close was stalling Firefox; it was not — the stall was the blocking read above,
+// and a long keep-alive only kept finished sockets around longer. Changed back rather than
+// left in place, because a setting that was introduced for a reason that turned out to be wrong
+// is a setting the next reader will trust.
+server.keepAliveTimeout = 5_000;
+server.headersTimeout = 10_000;
+
+// Nothing here should take a second, let alone a minute. A request that somehow does is closed
+// with an error the test can see, instead of held open until the suite times out.
+server.requestTimeout = 30_000;
 
 // Fail loudly rather than leave the port to whatever already owns it. A harness that cannot
 // start must not look like a harness that started.

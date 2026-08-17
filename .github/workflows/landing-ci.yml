@@ -253,14 +253,22 @@ jobs:
       - name: Enforcement across Chromium, Firefox, and WebKit
         env:
           CSP_MODE: enforce
-        run: pnpm exec playwright test --project=chromium --project=firefox --project=webkit
+        # `--workers=1` for the engine matrix, deliberately.
+        #
+        # Firefox and WebKit are software-rendered on a CI runner. Run two at once and a
+        # navigation on a 1.9 MB site intermittently exceeded even a 90-second budget — a
+        # different test each run, always `page.goto`, never on Chromium. Measured serially the
+        # same suite passes in ~30s. That is contention for a shared CPU, not a property of the
+        # page, and the honest response is to stop creating the contention rather than to add
+        # retries until it goes green. `retries` stays at 0.
+        run: pnpm exec playwright test --workers=1 --project=chromium --project=firefox --project=webkit
 
       # Report-Only is validated too, because that is the mode a policy is rolled out in and a
       # policy that only works when enforced is not one anybody can safely stage.
       - name: Report-Only across Chromium, Firefox, and WebKit
         env:
           CSP_MODE: report-only
-        run: pnpm exec playwright test --project=chromium --project=firefox --project=webkit
+        run: pnpm exec playwright test --workers=1 --project=chromium --project=firefox --project=webkit
 
       - name: Publish the policy as evidence
         if: ${{ !cancelled() }}

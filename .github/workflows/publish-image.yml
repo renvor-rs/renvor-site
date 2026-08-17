@@ -144,7 +144,9 @@ jobs:
         env:
           CSP_MODE: enforce
         run: |
-          pnpm exec playwright test \
+          # Serial for the same reason as in landing-ci: parallel software-rendered engines on
+          # a shared runner produce navigation timeouts that are about the runner, not the page.
+          pnpm exec playwright test --workers=1 \
             --project=desktop-1440x900 --project=mobile-390x844 \
             --project=chromium --project=firefox --project=webkit
 
