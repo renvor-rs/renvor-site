@@ -86,39 +86,81 @@ function headersFor(pathname) {
 }
 
 function resolve(urlPath) {
+  // `decodeURIComponent` throws a URIError on a malformed escape such as a bare `%`. Left
+  // unguarded that throw escapes the request handler, Node never writes a response, and the
+  // browser waits on a connection that will never answer — which surfaces as `page.goto`
+  // hanging until the test timeout, with nothing in the log to explain it. A resolver that
+  // cannot answer must return "not found", never throw.
+  let decoded;
+  try {
+    decoded = decodeURIComponent(urlPath.split('?')[0] ?? '/');
+  } catch {
+    return null;
+  }
   // Normalise before joining, so `..` cannot escape `out/`. Checked again after joining,
   // because normalisation alone is not a containment guarantee.
-  const clean = normalize(decodeURIComponent(urlPath.split('?')[0] ?? '/')).replace(/^(\.\.[/\\])+/, '');
+  const clean = normalize(decoded).replace(/^(\.\.[/\\])+/, '');
   let file = join(OUT, clean);
   if (!file.startsWith(OUT)) return null;
-  if (existsSync(file) && statSync(file).isDirectory()) file = join(file, 'index.html');
-  if (!existsSync(file) && existsSync(`${file}.html`)) file = `${file}.html`;
-  return existsSync(file) && statSync(file).isFile() ? file : null;
+  try {
+    if (existsSync(file) && statSync(file).isDirectory()) file = join(file, 'index.html');
+    if (!existsSync(file) && existsSync(`${file}.html`)) file = `${file}.html`;
+    return existsSync(file) && statSync(file).isFile() ? file : null;
+  } catch {
+    return null;
+  }
 }
 
+/**
+ * Every request gets a response, including the ones that go wrong.
+ *
+ * The whole handler is wrapped, because a browser cannot distinguish "the server errored" from
+ * "the server is still thinking" — both look like a pending connection, and a single pending
+ * subresource means the `load` event never fires and a navigation hangs until the test times
+ * out. A 500 is a diagnosable failure; silence is not.
+ */
 const server = createServer((req, res) => {
-  if (req.url === '/health') {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    return res.end('ok');
+  try {
+    if (req.url === '/health') {
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      return res.end('ok');
+    }
+
+    const file = resolve(req.url ?? '/');
+    const target = file ?? join(OUT, '404.html');
+    const status = file ? 200 : 404;
+    const ext = extname(target);
+
+    let body = readFileSync(target);
+    if (CONTROL && ext === '.html') {
+      body = Buffer.from(body.toString('utf8').replace('</head>', `${CONTROL_SCRIPT}</head>`), 'utf8');
+    }
+
+    res.writeHead(status, {
+      ...headersFor(file ? (req.url ?? '/') : '/404.html'),
+      'Content-Type': TYPES[ext] ?? 'application/octet-stream',
+      'Content-Length': body.length,
+    });
+    res.end(req.method === 'HEAD' ? undefined : body);
+  } catch (error) {
+    console.error(`[serve] ${req.method} ${req.url} failed:`, error);
+    if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end('internal error');
   }
-
-  const file = resolve(req.url ?? '/');
-  const target = file ?? join(OUT, '404.html');
-  const status = file ? 200 : 404;
-  const ext = extname(target);
-
-  let body = readFileSync(target);
-  if (CONTROL && ext === '.html') {
-    body = Buffer.from(body.toString('utf8').replace('</head>', `${CONTROL_SCRIPT}</head>`), 'utf8');
-  }
-
-  res.writeHead(status, {
-    ...headersFor(file ? (req.url ?? '/') : '/404.html'),
-    'Content-Type': TYPES[ext] ?? 'application/octet-stream',
-    'Content-Length': body.length,
-  });
-  res.end(req.method === 'HEAD' ? undefined : body);
 });
+
+// A socket error must not take the process down mid-suite, and a half-open connection must not
+// be left for a browser to wait on.
+server.on('clientError', (error, socket) => {
+  console.error('[serve] client error:', error.message);
+  if (!socket.destroyed) socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
+});
+
+// Longer than Node's 5s default and longer than any single test's navigation. Firefox holds
+// keep-alive connections open across a page load; a server-side idle close mid-load shows up
+// as a stalled subresource rather than as a retry.
+server.keepAliveTimeout = 30_000;
+server.headersTimeout = 35_000;
 
 // Fail loudly rather than leave the port to whatever already owns it. A harness that cannot
 // start must not look like a harness that started.
