@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Result } from 'axe-core';
 import { settle } from './support/settle';
+import { navigate } from './support/navigate';
 
 // WCAG 2.1 A and AA. These are the tags the page is held to; adding `best-practice` would mix
 // advisory findings into a fatal gate, and dropping any of these would lower the bar to
@@ -30,7 +31,7 @@ async function expectNoViolations(page: Page, label: string) {
 
 test.describe('landing route', () => {
   test('has no WCAG 2.1 A/AA violations on first paint', async ({ page }) => {
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
     await expectNoViolations(page, 'landing / (initial state)');
   });
@@ -38,7 +39,7 @@ test.describe('landing route', () => {
   test('has no WCAG 2.1 A/AA violations once scrolled', async ({ page }) => {
     // Several sections restyle as they enter the viewport. Scanning only the top would never
     // measure the state a reader spends most of their time looking at.
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await expect.poll(() => page.evaluate(() => window.scrollY), { timeout: 10_000 }).toBeGreaterThan(0);
@@ -46,7 +47,7 @@ test.describe('landing route', () => {
   });
 
   test('exposes a skip link that becomes visible on keyboard focus', async ({ page }) => {
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
 
     const skipLink = page.getByRole('link', { name: 'Skip to content' });
@@ -62,7 +63,7 @@ test.describe('landing route', () => {
   test('states the development status before any interaction', async ({ page }) => {
     // A release gate, not a copy check: PLAN.md §26.6 requires the page to say plainly that
     // Renvor cannot be installed, and to say it somewhere a reader meets immediately.
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
     const notice = page.getByRole('note', { name: 'Project status' });
     await expect(notice).toBeVisible();
@@ -74,7 +75,7 @@ test.describe('landing route', () => {
   test('never presents an installable command', async ({ page }) => {
     // Both commands may appear, but only labelled as unavailable. This asserts the label is
     // present next to each, so a future edit cannot leave a bare command looking runnable.
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
     const commands = page.locator('.unavailable-command');
     await expect(commands).toHaveCount(2);
@@ -95,7 +96,7 @@ const SOLUTION_TABS = ['backend', 'data', 'identity', 'delivery'] as const;
 test.describe('solution tablist', () => {
   for (const id of SOLUTION_TABS) {
     test(`panel for the "${id}" tab has no WCAG 2.1 A/AA violations`, async ({ page }) => {
-      await page.goto('/');
+      await navigate(page, '/');
       await settle(page);
 
       const tab = page.locator(`#tab-${id}`);
@@ -109,7 +110,7 @@ test.describe('solution tablist', () => {
   }
 
   test('implements roving tabindex and arrow-key navigation', async ({ page }) => {
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
 
     const tabs: Locator[] = SOLUTION_TABS.map((id) => page.locator(`#tab-${id}`));
@@ -138,7 +139,7 @@ test.describe('solution tablist', () => {
 
 test.describe('evaluation lens carousel', () => {
   test('has no WCAG 2.1 A/AA violations in any lens state', async ({ page }) => {
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
 
     const next = page.getByRole('button', { name: 'Next evaluation lens' });
@@ -160,7 +161,7 @@ test.describe('evaluation lens carousel', () => {
   });
 
   test('is operable by keyboard alone', async ({ page }) => {
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
     const next = page.getByRole('button', { name: 'Next evaluation lens' });
     const heading = page.locator('.evaluation-copy h2');
@@ -175,7 +176,7 @@ test.describe('evaluation lens carousel', () => {
 
 test.describe('theme toggle', () => {
   test('switches theme by keyboard and reports its state', async ({ page }) => {
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
 
     const toggle = page.getByRole('button', { name: /Switch to (light|dark) theme/ });
@@ -194,7 +195,7 @@ test.describe('theme toggle', () => {
   });
 
   test('has no WCAG 2.1 A/AA violations in the dark theme', async ({ page }) => {
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
     await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
@@ -204,13 +205,13 @@ test.describe('theme toggle', () => {
 
 test.describe('404 route', () => {
   test('has no WCAG 2.1 A/AA violations', async ({ page }) => {
-    await page.goto('/404.html');
+    await navigate(page, '/404.html');
     await settle(page);
     await expectNoViolations(page, '404 page');
   });
 
   test('an unknown path is answered 404 with the 404 document', async ({ page }) => {
-    const response = await page.goto('/definitely-not-a-page');
+    const response = await navigate(page, '/definitely-not-a-page');
     expect(response?.status(), 'a missing route must be a real 404, not a 200').toBe(404);
     await expect(page.getByRole('heading', { level: 1 })).toContainText('does not exist');
   });
@@ -221,7 +222,7 @@ test.describe('layout', () => {
   for (const width of [320, 375, 768, 1024, 1440]) {
     test(`does not overflow horizontally at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
-      await page.goto('/');
+      await navigate(page, '/');
       await settle(page);
       // Polled, not sampled once: a genuinely overflowing page never reaches 0, while a single
       // reading taken mid-layout can be wrong under parallel load.
@@ -241,7 +242,7 @@ test.describe('layout', () => {
     // WCAG 1.4.4. Emulated by halving the viewport, which is what doubling the scale does to
     // the CSS pixel budget.
     await page.setViewportSize({ width: 640, height: 512 });
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
     await expect
       .poll(

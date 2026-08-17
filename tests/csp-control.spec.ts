@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { navigate } from './support/navigate';
 
 /**
  * The negative control for the CSP suite.
@@ -39,7 +40,7 @@ async function collectViolations(page: Page): Promise<() => Promise<Violation[]>
 test.describe('negative control', () => {
   test('an un-hashed inline script is reported AND refused execution', async ({ page }) => {
     const read = await collectViolations(page);
-    await page.goto('/');
+    await navigate(page, '/');
     await page.waitForLoadState('domcontentloaded');
 
     const violations = await read();
@@ -62,7 +63,7 @@ test.describe('negative control', () => {
   test('the legitimate page still works while the control is blocked', async ({ page }) => {
     // Proves the policy is discriminating rather than simply breaking everything: the hashed
     // theme script and the same-origin chunks must still run.
-    await page.goto('/');
+    await navigate(page, '/');
     await expect(page.locator('header.site-header')).toHaveAttribute('data-hydrated', 'true');
     await expect(page.locator('html')).toHaveAttribute('data-theme', /light|dark/);
     await expect(page.getByRole('note', { name: 'Project status' })).toBeVisible();

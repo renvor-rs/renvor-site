@@ -2,6 +2,7 @@ import { expect, test, type ConsoleMessage, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { settle } from './support/settle';
+import { navigate } from './support/navigate';
 
 /**
  * Cross-engine validation of the generated CSP and of rendering.
@@ -66,7 +67,7 @@ function collectConsole(page: Page): { errors: string[]; rejections: string[] } 
 
 test.describe('content security policy', () => {
   test('the served policy is the generated policy, and it is strict', async ({ page }) => {
-    const response = await page.goto('/');
+    const response = await navigate(page, '/');
     const header = response?.headers()[CSP_HEADER] ?? '';
 
     // No drift: the header must be byte-identical to what the generator produced from the
@@ -98,7 +99,7 @@ test.describe('content security policy', () => {
     const read = await collectViolations(page);
     const console_ = collectConsole(page);
 
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
 
     // Exercise the interactive surfaces: a violation may only appear once a handler runs.
@@ -128,13 +129,13 @@ test.describe('content security policy', () => {
 
   test('the 404 document also loads with zero violations', async ({ page }) => {
     const read = await collectViolations(page);
-    await page.goto('/404.html');
+    await navigate(page, '/404.html');
     await settle(page);
     expect(await read()).toEqual([]);
   });
 
   test('the policy survives a reload and a cache revalidation', async ({ page }) => {
-    const first = await page.goto('/');
+    const first = await navigate(page, '/');
     expect(first?.headers()[CSP_HEADER]).toBe(POLICY);
 
     const read = await collectViolations(page);
@@ -147,7 +148,7 @@ test.describe('content security policy', () => {
   });
 
   test('security and cache headers are present on the document', async ({ page }) => {
-    const response = await page.goto('/');
+    const response = await navigate(page, '/');
     const h = response?.headers() ?? {};
     expect(h['x-content-type-options']).toBe('nosniff');
     expect(h['referrer-policy']).toBe('no-referrer');
@@ -161,7 +162,7 @@ test.describe('content security policy', () => {
     page.on('response', (r) => {
       if (r.url().includes('/_next/static/')) chunks.push(r.headers()['cache-control'] ?? '');
     });
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
     expect(chunks.length, 'the page must load at least one fingerprinted chunk').toBeGreaterThan(0);
     for (const value of chunks) expect(value).toContain('immutable');
@@ -173,7 +174,7 @@ test.describe('content security policy', () => {
       const url = new URL(r.url());
       if (url.hostname !== '127.0.0.1' && url.protocol !== 'data:') foreign.push(r.url());
     });
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(500);
@@ -183,7 +184,7 @@ test.describe('content security policy', () => {
 
 test.describe('rendering', () => {
   test('renders the brand, the status notice, and the lifecycle in this engine', async ({ page }) => {
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
 
     await expect(page.getByRole('link', { name: 'Renvor home' })).toBeVisible();
@@ -205,7 +206,7 @@ test.describe('rendering', () => {
   });
 
   test('renders without a horizontal scrollbar', async ({ page }) => {
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
     // Polled rather than sampled once. A genuinely overflowing page never reaches 0 and still
     // fails; a single reading taken while layout was still settling did, intermittently, and
@@ -234,7 +235,7 @@ test.describe('rendering', () => {
     });
 
     const console_ = collectConsole(page);
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
 
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { settle } from './support/settle';
+import { navigate } from './support/navigate';
 
 /**
  * The accessibility sweep runs under `prefers-reduced-motion: reduce`, because that is the
@@ -28,7 +29,7 @@ async function inlineOpacityCount(page: Page): Promise<number> {
 test.describe('reduced motion', () => {
   // Inherits `contextOptions.reducedMotion = 'reduce'` from the config.
   test('applies no inline animation styles', async ({ page }) => {
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
 
     const total = await page.locator(WORD).count();
@@ -43,7 +44,7 @@ test.describe('reduced motion', () => {
   test('leaves the page fully readable', async ({ page }) => {
     // The reduced-motion state must be the *finished* state, not the first frame of an
     // animation that never runs. Every word must be at full opacity.
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
     const faded = await page.evaluate((sel) => {
       return Array.from(document.querySelectorAll<HTMLElement>(sel)).filter(
@@ -58,7 +59,7 @@ test.describe('motion enabled', () => {
   test.use({ contextOptions: { reducedMotion: 'no-preference' } });
 
   test('does apply inline animation styles', async ({ page }) => {
-    await page.goto('/');
+    await navigate(page, '/');
     await settle(page);
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
 
