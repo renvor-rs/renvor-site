@@ -18,9 +18,13 @@ node_modules/
 # --- Generated output and caches ---
 # The image builds these itself. Copying a host build in would let the shipped site drift
 # from the source that supposedly produced it — the same reason they are git-ignored.
-build/
-.docusaurus/
-.cache-loader/
+#
+# `sws.generated.toml` matters most: it carries the CSP, and a stale host copy reaching the
+# image would mean serving a policy whose hashes describe a different build. It is generated
+# inside the image, from the same `out/` that ships.
+out/
+.next/
+sws.generated.toml
 *.tsbuildinfo
 
 # --- Validation output ---
@@ -75,8 +79,7 @@ tmp/
 
 # --- Container definition and documentation ---
 # The build does not need to read its own Dockerfile. No Markdown is an input either: the
-# Docusaurus preset runs with `docs: false` and `blog: false`, so the site is built from
-# `src/` and `static/` alone.
+# site is built from `app/`, `public/`, and `scripts/` alone.
 Dockerfile
 .dockerignore
 *.md

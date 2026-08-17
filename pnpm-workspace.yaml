@@ -1,6 +1,13 @@
 packages:
   - .
-allowBuilds:
-  core-js: true
-overrides:
-  serialize-javascript@<7.0.3: ^7.0.3
+
+# No `overrides` and no `allowBuilds`.
+#
+# Both existed for the Docusaurus tree and left with it. Verified rather than assumed:
+#   - `serialize-javascript@<7.0.3: ^7.0.3` pinned a transitive dependency of the webpack
+#     build. `serialize-javascript` no longer resolves anywhere in `pnpm-lock.yaml`, so the
+#     override constrained nothing — a stale rule that reads like an active control.
+#   - `core-js: true` permitted a postinstall script for a package the tree no longer has.
+#
+# Removing them is where the migration shows up in the supply chain: 114 packages against
+# roughly 1,180, needing no build-script exemption and no advisory pin at all.
