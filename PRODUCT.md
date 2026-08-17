@@ -42,7 +42,7 @@ This is a future production-launch concept. Production-readiness language can be
 Concretely, before this page may describe Renvor as released, available, or production-ready:
 
 - the **artifacts are actually published** — the named crates resolve on crates.io and can be installed;
-- the **installation commands actually work** — `renover` exists, is obtainable, and does what the page shows;
+- the **installation commands actually work** — the `renvor` executable exists, is obtainable, and does what the page shows *(the command was named `renover` until 2026-08-17; ADR-0010 in the framework repository unified it with the product name)*;
 - the **documentation actually resolves** — `docs.renvor.dev` serves the referenced pages rather than failing to answer;
 - **a real, supported release exists**, with its version, its support commitment, and its `PLAN.md` release gates complete.
 

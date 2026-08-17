@@ -1,19 +1,17 @@
 # Link checking for the built landing site.
 #
-# This runs over `build/`, not over source. Docusaurus already fails its own build on broken
-# internal links and anchors (`onBrokenLinks: 'throw'`, `onBrokenAnchors: 'throw'`), so
-# re-checking source would only re-prove what the build proved. What the build cannot know
-# is whether the outbound URLs still resolve, or whether the emitted HTML still contains the
+# This runs over `out/`, the static export, not over source. What a build cannot know is
+# whether the outbound URLs still resolve, or whether the emitted HTML still contains the
 # anchors the navigation points at. That is what this checks.
 
 # Follow and verify `#fragment` targets rather than accepting any URL whose path resolves.
-# The navbar links are all fragments into a single page, so without this the entire
-# navigation could rot silently and still pass.
+# The header links are all fragments into a single page, so without this the entire navigation
+# could rot silently and still pass.
 include_fragments = "full"
 
 # Only these are successes. Notably absent: 401, 403, and 429 — a link that requires
-# credentials or that rate-limits us is not a verified link, and silently accepting those
-# is how a link checker becomes decorative.
+# credentials or that rate-limits us is not a verified link, and silently accepting those is
+# how a link checker becomes decorative.
 accept = ["200", "204", "206", "301", "302", "307", "308"]
 
 # Outbound links are checked for real. All of them currently point at the public
@@ -27,20 +25,23 @@ max_concurrency = 8
 user_agent = "lychee/renvor-site-ci"
 
 # Root-relative links such as `/#solutions` name a directory, not a file. This tells lychee
-# which document to open when resolving one, so the navbar fragments are checked against the
-# HTML that actually serves at `/` rather than against a bare directory.
+# which document to open when resolving one, so the fragments are checked against the HTML that
+# actually serves at `/` rather than against a bare directory.
 index_files = ["index.html"]
 
-exclude_path = ["node_modules", ".docusaurus"]
+exclude_path = ["node_modules", ".next"]
 
 # `data:` and `javascript:` are not network resources, so there is nothing to dial.
 #
-# `renvor.dev` is excluded for a specific and temporary reason: it is this site's own
-# canonical origin, emitted into every page as `<link rel="canonical">` and `og:url`, and
-# the site has never been deployed. The host currently answers with a Traefik default
-# self-signed certificate, so the URL cannot be verified — not because the link is wrong,
-# but because its destination does not exist yet. Delete this entry at first deployment;
-# leaving it in place after that would stop the checker noticing a broken canonical URL.
+# `renvor.dev` is excluded for a specific and temporary reason: it is this site's own canonical
+# origin, emitted into every page as `<link rel="canonical">` and `og:url`, and the site is not
+# yet deployed. The host currently answers with a Traefik default self-signed certificate, so
+# the URL cannot be verified — not because the link is wrong, but because its destination does
+# not exist yet.
+#
+# **Delete this entry at first deployment.** Leaving it in place afterwards would stop the
+# checker noticing a broken canonical URL, which is exactly the link most worth checking on a
+# site that is finally live.
 exclude = [
   "^data:",
   "^javascript:",
@@ -48,5 +49,5 @@ exclude = [
 ]
 
 # No credentials are supplied and none are needed. Every outbound link points at the public
-# `renvor-rs/renvor` repository. If a future link requires auth, the fix is to link
-# somewhere public, not to teach this file a secret.
+# `renvor-rs/renvor` repository. If a future link requires auth, the fix is to link somewhere
+# public, not to teach this file a secret.
