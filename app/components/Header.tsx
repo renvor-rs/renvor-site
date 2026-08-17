@@ -46,7 +46,12 @@ export default function Header() {
 
   return (
     <header className="site-header" data-hydrated={hydrated ? 'true' : undefined}>
-      <a className="brand" href="#top" aria-label="Renvor home">
+      {/* Absolute, not `#top`. This header is rendered on the 404 route too, where a bare
+          fragment resolves against a document that has no such section — the link checker
+          caught six of them, and a reader clicking "Surfaces" from a 404 would have gone
+          nowhere. On the landing page `/#solutions` is still an in-page fragment navigation,
+          not a reload, because the path is unchanged. */}
+      <a className="brand" href="/" aria-label="Renvor home">
         {/* eslint-disable @next/next/no-img-element */}
         <img
           className="brand-lockup only-light"
@@ -65,12 +70,12 @@ export default function Header() {
         {/* eslint-enable @next/next/no-img-element */}
       </a>
       <nav className="site-nav" aria-label="Sections">
-        <a href="#solutions">Surfaces</a>
-        <a href="#panorama">Panorama</a>
-        <a href="#fullstack">Full-stack</a>
-        <a href="#operations">Operations</a>
-        <a href="#packages">Packages</a>
-        <a href="#docs">Source</a>
+        <a href="/#solutions">Surfaces</a>
+        <a href="/#panorama">Panorama</a>
+        <a href="/#fullstack">Full-stack</a>
+        <a href="/#operations">Operations</a>
+        <a href="/#packages">Packages</a>
+        <a href="/#docs">Source</a>
       </nav>
       <button
         type="button"

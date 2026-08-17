@@ -40,6 +40,40 @@ const MAX_DPR = 2;
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
+/**
+ * Is a WebGL context obtainable at all?
+ *
+ * Asked **before** importing Three.js, and that ordering is the point. Without it, a browser
+ * with no GPU — a hardened profile, a VM, a CI runner — downloads and parses 646 KB of a 3D
+ * library purely to discover it cannot use it, then logs its own diagnostics on the way out.
+ * That is wasted bandwidth and battery for the readers least able to spare either.
+ *
+ * It also removed a real class of CI failure: on GitHub's runners Firefox has no WebGL, so
+ * Three.js emitted `THREE.WebGLRenderer: A WebGL context could not be created` to the console
+ * on every navigation. The page behaved correctly — the fallback rendered — but a library
+ * announcing an environment limitation is not a page defect, and a console-error assertion
+ * cannot tell the difference. Not asking the question was the actual mistake.
+ *
+ * The probe canvas is never attached to the document, and its context is released immediately
+ * via `WEBGL_lose_context` where the extension exists, so this cannot itself consume one of
+ * the browser's limited live contexts.
+ */
+function webglAvailable(): boolean {
+  try {
+    const canvas = document.createElement('canvas');
+    const gl =
+      canvas.getContext('webgl2') ??
+      canvas.getContext('webgl') ??
+      canvas.getContext('experimental-webgl');
+    if (!gl) return false;
+    const lose = (gl as WebGLRenderingContext).getExtension('WEBGL_lose_context');
+    if (lose) lose.loseContext();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export default function Hero() {
   const heroRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -61,6 +95,16 @@ export default function Hero() {
     // and `teardown` carries whatever cleanup the async path set up back to React's cleanup.
     let cancelled = false;
     let teardown: (() => void) | null = null;
+
+    // Ask before paying. A browser without WebGL never downloads the 3D library at all.
+    if (!webglAvailable()) {
+      setWebglFailed(true);
+      const els = stagesRef.current ? Array.from(stagesRef.current.querySelectorAll('li')) : [];
+      // Resting state: every impression registered, matching reduced motion.
+      els.forEach((el) => el.classList.add('is-stamped'));
+      if (readoutNameRef.current) readoutNameRef.current.textContent = '— · holding';
+      return;
+    }
 
     void (async () => {
       let THREE: Three;
@@ -388,7 +432,7 @@ export default function Hero() {
           <a className="btn-primary" href="https://github.com/renvor-rs/renvor">
             Read the source →
           </a>
-          <a className="btn-secondary" href="#panorama">
+          <a className="btn-secondary" href="/#panorama">
             Tour the design ↗
           </a>
         </div>
