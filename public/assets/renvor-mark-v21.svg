@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="renvor-mark-v21-title renvor-mark-v21-desc">
+  <title id="renvor-mark-v21-title">Renvor Ordered Register mark for light fields</title>
+  <desc id="renvor-mark-v21-desc">Seven disconnected equal-width marine billets share an optical baseline while their heights rise, hold, and fall.</desc>
+  <path fill="#075E78" d="M14 106H26V142H14Z"/>
+  <path fill="#075E78" d="M34 82H46V142H34Z"/>
+  <path fill="#075E78" d="M54 54H66V142H54Z"/>
+  <path fill="#075E78" d="M74 32H86V142H74Z"/>
+  <path fill="#075E78" d="M94 36H106V142H94Z"/>
+  <path fill="#075E78" d="M114 64H126V142H114Z"/>
+  <path fill="#075E78" d="M134 94H146V142H134Z"/>
+</svg>
