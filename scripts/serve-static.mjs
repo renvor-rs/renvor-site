@@ -1,0 +1,218 @@
+#!/usr/bin/env node
+/**
+ * Local static server that applies the **generated** production headers.
+ *
+ * This exists so the CSP can be validated in real browsers before it reaches production, and
+ * so that validation is against the same policy string the image will serve — it reads
+ * `out/_csp/policy.txt`, which `scripts/generate-csp.mjs` produced from the built HTML. It
+ * does not contain a policy of its own, because a second copy is a second thing to drift.
+ *
+ * It is a **test harness**, not production. Production is `static-web-server` inside the
+ * image, configured by the generated `sws.generated.toml`. Both take the same policy from the
+ * same file, which is the point.
+ *
+ * Environment:
+ *   PORT           listen port (default 3210)
+ *   CSP_MODE       enforce (default) | report-only | none
+ *   CSP_CONTROL    when "1", inject a script the policy must block — the negative control
+ *
+ * The negative control matters more than it looks. A CSP test that only ever observes zero
+ * violations cannot distinguish "the policy is correct" from "the policy is not being applied
+ * at all", and those two states look identical from the outside. With `CSP_CONTROL=1` the
+ * page loads an inline script whose hash is deliberately absent from the policy; a browser
+ * enforcing the policy MUST report a violation and MUST NOT execute it. If that control fails
+ * to fire, every clean result in the same run is worthless.
+ */
+
+import { createServer } from 'node:http';
+import { readFileSync, existsSync, statSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { join, extname, normalize } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const OUT = join(ROOT, 'out');
+const PORT = Number(process.env.PORT ?? 3210);
+const MODE = process.env.CSP_MODE ?? 'enforce';
+const CONTROL = process.env.CSP_CONTROL === '1';
+
+const policyPath = join(OUT, '_csp', 'policy.txt');
+if (!existsSync(policyPath)) {
+  console.error('[serve] out/_csp/policy.txt is missing — run `pnpm run build && pnpm run csp`.');
+  process.exit(2);
+}
+const POLICY = readFileSync(policyPath, 'utf8').trim();
+
+const TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.json': 'application/json; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',
+  '.ico': 'image/x-icon',
+};
+
+/* The control script is inline and un-hashed on purpose. Its own hash is never added to the
+   policy, so a browser that is enforcing must refuse it. It sets a global the test then
+   asserts is absent. */
+const CONTROL_SCRIPT = `<script>window.__CSP_CONTROL_EXECUTED__ = true;</script>`;
+
+function headersFor(pathname) {
+  const headers = {
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'no-referrer',
+    'Permissions-Policy':
+      'accelerometer=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), ' +
+      'fullscreen=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), ' +
+      'payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), ' +
+      'usb=(), xr-spatial-tracking=()',
+    'Cross-Origin-Opener-Policy': 'same-origin',
+    'Cross-Origin-Resource-Policy': 'same-origin',
+    'X-Frame-Options': 'DENY',
+  };
+  if (MODE === 'enforce') headers['Content-Security-Policy'] = POLICY;
+  else if (MODE === 'report-only') headers['Content-Security-Policy-Report-Only'] = POLICY;
+
+  // Mirrors sws.generated.toml exactly: revalidate by default, long-lived only where the
+  // filename is content-addressed. Keyed on the request path, which is what the production
+  // server matches on — `/` must therefore be covered by the default rule rather than by an
+  // `*.html` glob it can never match.
+  if (pathname.startsWith('/_next/static/'))
+    headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+  else if (pathname.startsWith('/assets/')) headers['Cache-Control'] = 'public, max-age=86400';
+  else headers['Cache-Control'] = 'public, max-age=0, must-revalidate';
+  return headers;
+}
+
+function resolve(urlPath) {
+  // `decodeURIComponent` throws a URIError on a malformed escape such as a bare `%`. Left
+  // unguarded that throw escapes the request handler, Node never writes a response, and the
+  // browser waits on a connection that will never answer — which surfaces as `page.goto`
+  // hanging until the test timeout, with nothing in the log to explain it. A resolver that
+  // cannot answer must return "not found", never throw.
+  let decoded;
+  try {
+    decoded = decodeURIComponent(urlPath.split('?')[0] ?? '/');
+  } catch {
+    return null;
+  }
+  // Normalise before joining, so `..` cannot escape `out/`. Checked again after joining,
+  // because normalisation alone is not a containment guarantee.
+  const clean = normalize(decoded).replace(/^(\.\.[/\\])+/, '');
+  let file = join(OUT, clean);
+  if (!file.startsWith(OUT)) return null;
+  try {
+    if (existsSync(file) && statSync(file).isDirectory()) file = join(file, 'index.html');
+    if (!existsSync(file) && existsSync(`${file}.html`)) file = `${file}.html`;
+    return existsSync(file) && statSync(file).isFile() ? file : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Every request gets a response, including the ones that go wrong.
+ *
+ * The whole handler is wrapped, because a browser cannot distinguish "the server errored" from
+ * "the server is still thinking" — both look like a pending connection, and a single pending
+ * subresource means the `load` event never fires and a navigation hangs until the test times
+ * out. A 500 is a diagnosable failure; silence is not.
+ */
+/* Files are read once and held in memory.
+ *
+ * `out/` is 1.9 MB — small enough to cache entirely, and doing so removes the reason this
+ * harness was slow: a synchronous `readFileSync` per request blocks the single Node thread,
+ * and a page load here is ~17 subresources across six parallel connections, times two browser
+ * workers. Under that pattern Firefox intermittently exceeded a 90-second navigation budget on
+ * a 1.9 MB site, which is not a plausible amount of work — it was queueing, not transferring.
+ *
+ * Serving from a Map also means no I/O can fail mid-response, which is the other way a
+ * connection ends up hanging with nothing written to it. */
+const cache = new Map();
+async function bodyFor(target, ext) {
+  const key = `${target}|${ext}`;
+  let hit = cache.get(key);
+  if (!hit) {
+    let raw = await readFile(target);
+    if (CONTROL && ext === '.html') {
+      raw = Buffer.from(raw.toString('utf8').replace('</head>', `${CONTROL_SCRIPT}</head>`), 'utf8');
+    }
+    hit = raw;
+    cache.set(key, hit);
+  }
+  return hit;
+}
+
+const server = createServer((req, res) => {
+  // Every path through this handler ends in a response, including the ones that throw. A
+  // browser cannot distinguish "the server errored" from "the server is still thinking": both
+  // are a pending connection, and one pending subresource means `load` never fires and the
+  // navigation hangs until the test times out. A 500 is diagnosable; silence is not.
+  void (async () => {
+    try {
+      if (req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        return res.end('ok');
+      }
+
+      const file = resolve(req.url ?? '/');
+      const target = file ?? join(OUT, '404.html');
+      const status = file ? 200 : 404;
+      const ext = extname(target);
+      const body = await bodyFor(target, ext);
+
+      res.writeHead(status, {
+        ...headersFor(file ? (req.url ?? '/') : '/404.html'),
+        'Content-Type': TYPES[ext] ?? 'application/octet-stream',
+        'Content-Length': body.length,
+      });
+      res.end(req.method === 'HEAD' ? undefined : body);
+    } catch (error) {
+      console.error(`[serve] ${req.method} ${req.url} failed:`, error);
+      if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('internal error');
+    }
+  })();
+});
+
+// A socket error must not take the process down mid-suite, and a half-open connection must not
+// be left for a browser to wait on.
+server.on('clientError', (error, socket) => {
+  console.error('[serve] client error:', error.message);
+  if (!socket.destroyed) socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
+});
+
+// Node's defaults, restored. An earlier revision raised these to 30s on the theory that a
+// mid-load idle close was stalling Firefox; it was not — the stall was the blocking read above,
+// and a long keep-alive only kept finished sockets around longer. Changed back rather than
+// left in place, because a setting that was introduced for a reason that turned out to be wrong
+// is a setting the next reader will trust.
+server.keepAliveTimeout = 5_000;
+server.headersTimeout = 10_000;
+
+// Nothing here should take a second, let alone a minute. A request that somehow does is closed
+// with an error the test can see, instead of held open until the suite times out.
+server.requestTimeout = 30_000;
+
+// Fail loudly rather than leave the port to whatever already owns it. A harness that cannot
+// start must not look like a harness that started.
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(
+      `[serve] port ${PORT} is already in use by another process. Refusing to start: tests ` +
+        `would silently run against whatever is listening there instead of this build.`,
+    );
+    process.exit(2);
+  }
+  throw error;
+});
+
+// Bind explicitly to IPv4 loopback and refuse to share. `exclusive` makes a second listener
+// on the same port an immediate EADDRINUSE rather than a silent handoff, which is what turns
+// a port race into a visible failure instead of a hung test.
+server.listen({ port: PORT, host: '127.0.0.1', exclusive: true }, () => {
+  console.log(`[serve] http://127.0.0.1:${PORT}  mode=${MODE}  control=${CONTROL ? 'ON' : 'off'}`);
+  console.log(`[serve] policy: ${POLICY}`);
+});

@@ -1,0 +1,318 @@
+# Publish the landing image to the GitHub Container Registry.
+#
+# This is the only workflow in this repository that authenticates anywhere, and it does so
+# with the workflow run's own short-lived `GITHUB_TOKEN` — an installation token scoped to
+# this run and revoked when it ends. **No personal access token, deploy key, SSH key,
+# repository secret, or long-lived registry credential exists or is created.** The deployed
+# image is public, so the cluster stores no pull secret either (ADR-0006 D7, PLAN.md §26.4).
+#
+# TRIGGERS. Only trusted pushes to `main` — that is, pushes to the protected default branch,
+# which requires a reviewed pull request to reach. `pull_request` is deliberately absent: a
+# pull-request trigger from a fork runs with a token this workflow must never hand out.
+#
+# PATHS. Restricted to what can actually change the production image. A README-only change
+# publishes nothing, because republishing an identical site under a new digest would mean the
+# deployed digest churns for reasons no reader could see.
+#
+# Every third-party action is pinned to a full commit SHA. A tag is a mutable pointer.
+
+name: publish-image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'public/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'next.config.mjs'
+      - 'tsconfig.json'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - '.nvmrc'
+      - '.github/workflows/publish-image.yml'
+  workflow_dispatch:
+
+# Least privilege, stated once at the top and never widened by a job:
+#   contents: read       — check out the source, nothing more
+#   packages: write      — push to ghcr.io/renvor-rs/renvor-site
+#   id-token: write      — the OIDC token Sigstore uses for keyless signing
+#   attestations: write  — record build provenance and SBOM attestations
+# Notably absent: `contents: write`, `actions: write`, `security-events: write`, and
+# `pull-requests: write`. This workflow publishes; it does not modify the repository.
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+
+# Never publish two images for the same branch concurrently, and never cancel one in flight —
+# a cancelled publish can leave a partially pushed manifest behind.
+concurrency:
+  group: publish-image-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ghcr.io/renvor-rs/renvor-site
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  publish:
+    name: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The checkout credential is not needed after checkout and must not remain in the
+          # git config where a later step could reuse it.
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - name: Set up Node from .nvmrc
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      # ── Release gates, re-run here rather than assumed ──────────────────────────────
+      #
+      # `landing-ci` already ran on the pull request that produced this commit. These are
+      # re-run against the exact commit being published because "a green check exists
+      # somewhere" and "this artifact passed" are different claims, and only the second one
+      # justifies a push to a public registry.
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Build the static export
+        run: |
+          rm -rf .next out
+          pnpm run build
+          test -f out/index.html
+          test -f out/404.html
+
+      - name: Derive and verify the Content-Security-Policy
+        run: |
+          set -euo pipefail
+          pnpm run csp
+          grep -q "script-src 'self' 'sha256-" out/_csp/policy.txt
+          # NOT `! grep …`. Under `set -e` a negated command does not trigger errexit
+          # (shellcheck SC2251), so the weak-policy case would have printed nothing and passed —
+          # a gate that fails open is worse than no gate, because it reads as evidence.
+          if grep -qE "unsafe-inline|unsafe-eval|unsafe-hashes" out/_csp/policy.txt; then
+            echo "::error::the generated policy contains an unsafe directive"
+            cat out/_csp/policy.txt
+            exit 1
+          fi
+          echo "policy: $(cat out/_csp/policy.txt)"
+
+      - name: pnpm advisories
+        run: pnpm audit --audit-level=moderate
+
+      - name: Restore the Playwright browser cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install browsers
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+
+      # The negative control first, for the same reason as in `landing-ci`: without it, "zero
+      # violations" is indistinguishable from "no policy applied".
+      - name: Negative control — prove enforcement is live
+        env:
+          CSP_CONTROL: '1'
+          CSP_MODE: enforce
+          A11Y_PORT: '3221'
+        run: pnpm exec playwright test --project=csp-control
+
+      - name: Accessibility and CSP suites
+        env:
+          CSP_MODE: enforce
+          A11Y_PORT: '3222'
+        run: |
+          # Serial for the same reason as in landing-ci: parallel software-rendered engines on
+          # a shared runner produce navigation timeouts that are about the runner, not the page.
+          pnpm exec playwright test --workers=1 \
+            --project=desktop-1440x900 --project=mobile-390x844 \
+            --project=chromium --project=firefox --project=webkit
+
+      # ── Build the exact production image ────────────────────────────────────────────
+      - name: Build the production image
+        run: |
+          set -euo pipefail
+          SOURCE_DATE_EPOCH="$(git log -1 --pretty=%ct)"
+          export SOURCE_DATE_EPOCH
+          echo "SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}"
+          docker build --file Dockerfile --tag renvor-site:candidate .
+
+      # ── Scan BEFORE promotion ───────────────────────────────────────────────────────
+      #
+      # Ordered deliberately: nothing is pushed until the scan has passed. Scanning after a
+      # push would mean a vulnerable image had already been publicly pullable.
+      - name: Scan the candidate image (HIGH and CRITICAL block promotion)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: renvor-site:candidate
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          ignore-unfixed: false
+          trivyignores: .trivyignore.yaml
+          format: table
+
+      - name: Create the SBOM output directory
+        run: mkdir -p sbom
+
+      - name: Generate the dependency SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: .
+          format: spdx-json
+          output-file: sbom/renvor-site-dependencies.spdx.json
+          syft-version: v1.51.0
+          upload-artifact: false
+          dependency-snapshot: false
+
+      - name: Generate the runtime SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: renvor-site:candidate
+          format: spdx-json
+          output-file: sbom/renvor-site.spdx.json
+          syft-version: v1.51.0
+          upload-artifact: false
+          dependency-snapshot: false
+
+      # ── Authenticate, as late as possible ───────────────────────────────────────────
+      #
+      # Login happens here rather than at the top of the job so that every gate above runs
+      # unauthenticated. A failure before this point cannot touch the registry at all.
+      - name: Log in to the GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Publish ─────────────────────────────────────────────────────────────────────
+      #
+      # Tagged by full commit SHA. `latest` is published as a convenience for humans reading
+      # the package page; **production never references it** — deployment manifests pin the
+      # immutable digest captured below (PLAN.md §26.4). A mutable tag in a manifest is a
+      # deployment whose contents can change without a commit.
+      - name: Push by commit SHA and capture the immutable digest
+        id: push
+        run: |
+          set -euo pipefail
+          SHA_TAG="${IMAGE}:sha-${GITHUB_SHA}"
+          docker tag renvor-site:candidate "${SHA_TAG}"
+          docker tag renvor-site:candidate "${IMAGE}:latest"
+          docker push "${SHA_TAG}"
+          docker push "${IMAGE}:latest"
+
+          DIGEST="$(docker inspect --format='{{index .RepoDigests 0}}' "${SHA_TAG}" | cut -d@ -f2)"
+          [ -n "${DIGEST}" ] || { echo "::error::could not resolve the pushed digest"; exit 1; }
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "Published ${IMAGE}@${DIGEST}"
+
+      # ── Attest and sign ─────────────────────────────────────────────────────────────
+      #
+      # Both attestations are Sigstore-signed keylessly using the run's OIDC identity, so no
+      # signing key exists to be stolen or rotated. The subject is the digest, not the tag.
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest the runtime SBOM
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          sbom-path: sbom/renvor-site.spdx.json
+          push-to-registry: true
+
+      # ── Verify what was published, from outside ─────────────────────────────────────
+      #
+      # Verification after the fact, against the registry rather than against local state. A
+      # signature that only verifies locally proves nothing about what a puller receives.
+      - name: Verify the provenance and SBOM attestations
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Passed through the environment rather than interpolated into the script body. The
+          # value here is a digest this job computed, so it is not attacker-controlled, but the
+          # pattern is the one that stays safe when a future step reads something that is.
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          set -euo pipefail
+          echo "verifying ${IMAGE}@${DIGEST}"
+          gh attestation verify "oci://${IMAGE}@${DIGEST}" --repo "${GITHUB_REPOSITORY}"
+
+      - name: Verify an anonymous pull succeeds
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          set -euo pipefail
+          # Log out first: this must prove the image is publicly pullable, and it cannot do
+          # that while still holding the credential that pushed it.
+          docker logout "${REGISTRY}"
+          docker rmi "${IMAGE}@${DIGEST}" >/dev/null 2>&1 || true
+          docker pull "${IMAGE}@${DIGEST}"
+          echo "anonymous pull by digest succeeded"
+
+      # ── Release evidence ────────────────────────────────────────────────────────────
+      #
+      # Commit, digest, and SBOM hashes — the three things a rollback or an audit needs. No
+      # secret, no token, no environment value.
+      - name: Write the release evidence
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          {
+            echo "commit:            ${GITHUB_SHA}"
+            echo "ref:               ${GITHUB_REF}"
+            echo "workflow_run:      ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "image:             ${IMAGE}"
+            echo "digest:            ${DIGEST}"
+            echo "pinned_reference:  ${IMAGE}@${DIGEST}"
+            echo "sbom_runtime:      sha256:$(sha256sum sbom/renvor-site.spdx.json | cut -d' ' -f1)"
+            echo "sbom_dependencies: sha256:$(sha256sum sbom/renvor-site-dependencies.spdx.json | cut -d' ' -f1)"
+            echo "csp_policy:        sha256:$(sha256sum out/_csp/policy.txt | cut -d' ' -f1)"
+            echo ""
+            echo "content-security-policy:"
+            cat out/_csp/policy.txt
+          } | tee evidence/release.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the release evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-evidence
+          path: |
+            evidence/release.txt
+            sbom/renvor-site.spdx.json
+            sbom/renvor-site-dependencies.spdx.json
+            out/_csp/policy.txt
+            out/_csp/hashes.json
+          retention-days: 90
+          if-no-files-found: error

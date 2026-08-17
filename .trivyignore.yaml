@@ -1,47 +1,29 @@
 # Trivy exceptions.
 #
-# Everything in this file is a HIGH or CRITICAL finding that has been looked at, judged, and
-# given an expiry date. Nothing is here to make a build green. An entry that cannot state
-# why the risk does not apply does not belong in this file — the fix is to upgrade, replace,
-# or remove the dependency instead.
+# **This file is deliberately empty of exceptions, and that is the whole point of recording it
+# rather than deleting it.**
+#
+# It previously carried two entries — CVE-2025-71329 and CVE-2025-71330, both denial-of-service
+# advisories against `image-size@2.0.2`, reached through `@docusaurus/mdx-loader`. Neither had a
+# published fix, so they were accepted risks with an expiry rather than deferred upgrades, and
+# they were tracked as Phase 001 deployment gate **T108**.
+#
+# The Next.js migration removed them by removing the dependency: `image-size` no longer appears
+# anywhere in `pnpm-lock.yaml`, and `pnpm audit` reports no known vulnerabilities across the
+# whole tree. The exceptions were retired because the risk was eliminated, not because it was
+# re-judged.
+#
+# WHAT BELONGS HERE, IF ANYTHING EVER DOES
+#
+# Every entry must be a HIGH or CRITICAL finding that has been looked at, judged, and given an
+# expiry date. Nothing goes here to make a build green. An entry that cannot state why the risk
+# does not apply does not belong in this file — the fix is to upgrade, replace, or remove the
+# dependency instead.
 #
 # Entries expire on purpose. When one lapses the scan turns red again and the judgement gets
 # re-made against whatever is true then, rather than quietly outliving its evidence.
+#
+# The file itself is kept rather than deleted so that both CI workflows can keep referencing a
+# path that exists, and so the next person to reach for an exception reads the rules first.
 
-vulnerabilities:
-  # --- image-size 2.0.2 — tracked as Phase 001 gate T108 -------------------------------
-  #
-  # Both advisories describe a denial of service reached by parsing a hostile image buffer.
-  #
-  # Why the risk does not apply here:
-  #   1. There is no fixed version. Upstream has published no release that resolves either
-  #      advisory, so there is nothing to upgrade to. This is an accepted risk, not a
-  #      deferred upgrade.
-  #   2. It is reachable only at build time. `image-size` arrives via
-  #      `@docusaurus/mdx-loader`, which runs on the build machine and never ships to a
-  #      browser. The runtime image contains the generated site and one static server
-  #      binary; it contains no JavaScript dependency tree at all.
-  #   3. Its code path is not exercised. The Docusaurus preset runs with `docs: false` and
-  #      `blog: false`, and the site has no MDX content, so the loader that would call it
-  #      never processes an image.
-  #   4. The only inputs are committed to this repository and reviewed. There is no path by
-  #      which an untrusted image reaches this parser.
-  #
-  # This is already recorded as an open Phase 001 deployment gate (T108) and is resolved
-  # there, not here. Deployment remains blocked on it independently of this file.
-  - id: CVE-2025-71329
-    paths:
-      - pnpm-lock.yaml
-    statement: >-
-      Build-time only via @docusaurus/mdx-loader; no fixed version published upstream; the
-      loader is inert because docs and blog are disabled and the site has no MDX. Tracked as
-      Phase 001 gate T108.
-    expired_at: 2026-11-30
-
-  - id: CVE-2025-71330
-    paths:
-      - pnpm-lock.yaml
-    statement: >-
-      Same package, same build-time-only reachability, same absence of a published fix.
-      Tracked as Phase 001 gate T108.
-    expired_at: 2026-11-30
+vulnerabilities: []
