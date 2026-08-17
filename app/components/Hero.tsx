@@ -96,17 +96,34 @@ export default function Hero() {
     let cancelled = false;
     let teardown: (() => void) | null = null;
 
-    // Ask before paying. A browser without WebGL never downloads the 3D library at all.
-    if (!webglAvailable()) {
-      setWebglFailed(true);
-      const els = stagesRef.current ? Array.from(stagesRef.current.querySelectorAll('li')) : [];
-      // Resting state: every impression registered, matching reduced motion.
-      els.forEach((el) => el.classList.add('is-stamped'));
-      if (readoutNameRef.current) readoutNameRef.current.textContent = '— · holding';
-      return;
-    }
-
     void (async () => {
+      /* Wait for `load` before touching WebGL at all.
+       *
+       * This effect runs during hydration, which is before the `load` event. Creating a WebGL
+       * context there puts GPU initialisation on the critical path — and on a machine with no
+       * GPU, where the browser falls back to a software rasteriser, `getContext` can occupy
+       * the main thread long enough to delay `load` itself. That is not theoretical: headless
+       * Firefox on CI intermittently exceeded a 90-second navigation budget, always waiting on
+       * `load`, always on a page that was otherwise fine.
+       *
+       * Deferring past `load` is also simply correct. A decorative canvas has no business
+       * competing with the page's own rendering, and nothing here is needed for the hero to be
+       * readable — the copy and the seven lifecycle stages are server-rendered text. */
+      if (document.readyState !== 'complete') {
+        await new Promise<void>((r) => window.addEventListener('load', () => r(), { once: true }));
+      }
+      if (cancelled) return;
+
+      // Ask before paying. A browser without WebGL never downloads the 3D library at all.
+      if (!webglAvailable()) {
+        setWebglFailed(true);
+        const els = stagesRef.current ? Array.from(stagesRef.current.querySelectorAll('li')) : [];
+        // Resting state: every impression registered, matching reduced motion.
+        els.forEach((el) => el.classList.add('is-stamped'));
+        if (readoutNameRef.current) readoutNameRef.current.textContent = '— · holding';
+        return;
+      }
+
       let THREE: Three;
       try {
         THREE = await import('three');
