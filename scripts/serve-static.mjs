@@ -209,7 +209,10 @@ server.on('error', (error) => {
   throw error;
 });
 
-server.listen(PORT, '127.0.0.1', () => {
+// Bind explicitly to IPv4 loopback and refuse to share. `exclusive` makes a second listener
+// on the same port an immediate EADDRINUSE rather than a silent handoff, which is what turns
+// a port race into a visible failure instead of a hung test.
+server.listen({ port: PORT, host: '127.0.0.1', exclusive: true }, () => {
   console.log(`[serve] http://127.0.0.1:${PORT}  mode=${MODE}  control=${CONTROL ? 'ON' : 'off'}`);
   console.log(`[serve] policy: ${POLICY}`);
 });

@@ -185,6 +185,8 @@ jobs:
       # 404 document, five reflow widths, and 200% zoom. Zero WCAG 2.1 A/AA violations are
       # tolerated.
       - name: Run the accessibility and motion suites
+        env:
+          A11Y_PORT: '3214'
         run: pnpm exec playwright test --project=desktop-1440x900 --project=mobile-390x844
 
       - name: Upload the accessibility report
@@ -248,11 +250,16 @@ jobs:
         env:
           CSP_CONTROL: '1'
           CSP_MODE: enforce
+          # A distinct port per step. Three suites run back to back here, each starting its own
+          # server; sharing one port lets a starting server race a stopping one, and Playwright's
+          # health check can be answered by the outgoing process.
+          A11Y_PORT: '3211'
         run: pnpm exec playwright test --project=csp-control
 
       - name: Enforcement across Chromium, Firefox, and WebKit
         env:
           CSP_MODE: enforce
+          A11Y_PORT: '3212'
         # `--workers=1` for the engine matrix, deliberately.
         #
         # Firefox and WebKit are software-rendered on a CI runner. Run two at once and a
@@ -268,6 +275,7 @@ jobs:
       - name: Report-Only across Chromium, Firefox, and WebKit
         env:
           CSP_MODE: report-only
+          A11Y_PORT: '3213'
         run: pnpm exec playwright test --workers=1 --project=chromium --project=firefox --project=webkit
 
       - name: Publish the policy as evidence

@@ -138,11 +138,13 @@ jobs:
         env:
           CSP_CONTROL: '1'
           CSP_MODE: enforce
+          A11Y_PORT: '3221'
         run: pnpm exec playwright test --project=csp-control
 
       - name: Accessibility and CSP suites
         env:
           CSP_MODE: enforce
+          A11Y_PORT: '3222'
         run: |
           # Serial for the same reason as in landing-ci: parallel software-rendered engines on
           # a shared runner produce navigation timeouts that are about the runner, not the page.

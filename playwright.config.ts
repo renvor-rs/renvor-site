@@ -6,6 +6,16 @@ import { defineConfig, devices } from '@playwright/test';
  * injects a refresh runtime and unminified markup that production never ships, and it applies
  * no CSP at all, so a pass there would be evidence about the wrong artifact.
  */
+/* Port is overridable per invocation, and CI uses a DIFFERENT one for every step.
+ *
+ * The `csp` job runs three suites back to back — control, enforcement, report-only — each
+ * starting its own server because `reuseExistingServer` is false. On one shared port those
+ * three race: the previous server is still releasing the socket while the next one binds, and
+ * Playwright's health check can be answered by the *outgoing* server. Tests then begin against
+ * a process that is shutting down, and its half-closed connections surface as `page.goto`
+ * hanging until the test timeout — which is exactly the symptom that was observed, always on a
+ * later test, never on the first. Distinct ports remove the race rather than widening a
+ * timeout around it. */
 const PORT = Number(process.env.A11Y_PORT ?? 3210);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 
