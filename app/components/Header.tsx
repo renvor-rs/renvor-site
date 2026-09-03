@@ -95,8 +95,8 @@ export default function Header() {
           type="button"
           className="motion-toggle"
           onClick={toggleMotion}
-          aria-label={motion === 'paused' ? 'Play animations' : 'Pause animations'}
-          aria-pressed={motion === 'paused'}
+          aria-label="Animation playback"
+          aria-pressed={motion === 'running'}
         >
           {motion === 'paused' ? (
             <Play className="glyph" aria-hidden="true" size={18} strokeWidth={1.6} />
