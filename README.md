@@ -1,10 +1,8 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="public/assets/renvor-lockup-v21-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="public/assets/renvor-lockup-v21-light.svg">
-    <img alt="Renvor" src="public/assets/renvor-lockup-v21-light.svg" width="360">
-  </picture>
-</p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/renvor-site-readme-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset=".github/assets/renvor-site-readme-light.svg">
+  <img alt="Renvor Site" src=".github/assets/renvor-site-readme-light.svg" width="100%">
+</picture>
 
 <h1 align="center">Renvor — site</h1>
 
@@ -12,17 +10,30 @@
   The landing page for <a href="https://renvor.dev">renvor.dev</a>.
 </p>
 
+<p align="center">
+  <a href="https://github.com/renvor-rs/renvor-site/actions/workflows/landing-ci.yml"><img alt="Landing CI" src="https://github.com/renvor-rs/renvor-site/actions/workflows/landing-ci.yml/badge.svg?branch=main"></a>
+  <a href="https://github.com/renvor-rs/renvor-site/actions/workflows/publish-image.yml"><img alt="Publish image" src="https://github.com/renvor-rs/renvor-site/actions/workflows/publish-image.yml/badge.svg?branch=main"></a>
+  <a href="package.json"><img alt="Node 24 or newer" src="https://img.shields.io/badge/Node-%E2%89%A524-339933.svg?logo=nodedotjs&amp;logoColor=white"></a>
+  <a href="#licence"><img alt="License: MIT OR Apache-2.0" src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg"></a>
+</p>
+
 ---
 
-> ## Not deployed, and the framework is not installable
+> ## Deployed preview; the framework has no supported installation path
 >
-> **Renvor is in active development. No crate is published and no release exists.** `renvor`
-> and `renvor-cli` both return HTTP 404 from the crates.io registry index, verified
-> 2026-08-17.
+> **Renvor is in active development. Nothing is published, no supported installation path
+> exists, and there is no release.** Neither `renvor` nor `renvor-cli` exists on crates.io.
 >
-> **Phase 002 delivered a tested, transport-independent kernel** — that part is real, and the
-> page says so. What is not real: no CLI, no network transport, no database adapter, no
-> generated project, and nothing installable.
+> **Phases 002 through 009 are implemented and tested locally.** Phase 002 delivered the
+> transport-independent kernel. Phase 003 added the `renvor` CLI and its transactional project
+> generator. Phase 004 added an opt-in REST and HTTP delivery adapter. Phase 005 added the
+> validation boundary, RFC 9457 problem responses, and OpenAPI 3.2 generation. Phases 006–008
+> added driver-neutral persistence ports and SQLx and SeaORM adapters tested on PostgreSQL and
+> MySQL. Phase 009 added authentication, sessions, authorization policies, and optional tokens.
+>
+> **The limits remain important.** Because nothing is published, generated projects cannot yet
+> depend on the framework. Persistence and authentication are not exposed through the facade,
+> and every API is explicitly unstable. Do not treat the local implementation as a usable release.
 
 ## What this repository is
 
@@ -32,10 +43,11 @@ route handlers, no middleware, no SSR, no runtime environment variables, no cook
 storage, and no telemetry. A page that needs any of those fails the build rather than quietly
 requiring a Node process in production.
 
-The visual system is **v21 "Ordered Register"**: seven billets whose rising, held, and falling
-heights are the framework's seven lifecycle phases — `Load → Validate → Register → Boot →
-Ready → Drain → Stop`. That ordering is not decoration; it is the sequence `LifecyclePhase`
-implements in `renvor-core`.
+The visual system is **v40 "Rail Knot / Parallel Passage"**. The approved R and V master keeps
+its exact four-layer weave, while the supporting system uses sparse parallel 30-degree routes
+that never intersect. The hero extrudes the canonical logo paths in Three.js without redrawing
+or morphing them. The seven lifecycle phases remain readable as text and motion:
+`Load → Validate → Register → Boot → Ready → Drain → Stop`.
 
 ## Stack
 
@@ -113,10 +125,11 @@ could.
 
 ## Accessibility
 
-Zero WCAG 2.1 A/AA violations across: the landing route before and after scroll, all four
-solution tab panels, every evaluation-lens state, both themes, and the 404 document. Plus
-keyboard operation of the tablist, carousel, and theme toggle; a working skip link; no
-horizontal overflow at 320, 375, 768, 1024, or 1440 px; and usability at 200 % zoom.
+Automated axe-core scans report zero WCAG 2.1 A/AA violations across the landing route before
+and after scroll, all four solution tab panels, every evaluation-lens state, both themes, and
+the 404 document. Separate browser tests cover keyboard operation of the tablist, carousel,
+and theme toggle; a working skip link; no horizontal overflow at 320, 375, 768, 1024, or
+1440 px; and usability at 200 % zoom.
 
 **Reduced motion is enforced, not merely styled.** Under `prefers-reduced-motion: reduce` the
 page creates zero ScrollTriggers and writes zero inline animation styles, and every element
@@ -124,8 +137,8 @@ rests at its authored colour. A companion test asserts that motion *does* engage
 allowed, so the accessibility sweep cannot go green by the animation quietly breaking.
 
 **WebGL is optional.** If a context cannot be created — or is lost later, or the Three.js chunk
-fails to load — the hero renders as a flat styled register. The seven lifecycle stages are
-present as text regardless, so nothing informational depends on the canvas.
+fails to load — the hero renders the exact flat V40 Rail Knot mark. The seven lifecycle stages
+are present as text regardless, so nothing informational depends on the canvas.
 
 ## Container
 

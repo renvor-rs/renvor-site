@@ -1,21 +1,21 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="public/assets/renvor-mark-v21-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="public/assets/renvor-mark-v21.svg">
-    <img alt="Renvor" src="public/assets/renvor-mark-v21.svg" width="90">
+    <source media="(prefers-color-scheme: dark)" srcset="public/assets/renvor-mark-v40-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="public/assets/renvor-mark-v40-light.svg">
+    <img alt="Renvor" src="public/assets/renvor-mark-v40-light.svg" width="90">
   </picture>
 </p>
 
 <h1 align="center">Renvor brand usage policy</h1>
 
 <p align="center">
-  <strong>Version 1.1 · 2026-08-17 · Ahmed Anbar</strong>
+  <strong>Version 1.2 · 2026-09-01 · Ahmed Anbar</strong>
 </p>
 
 <p align="center">
   <em>
-    Version 1.1 updates the asset filenames and the executable name. The permissions and
-    restrictions below are unchanged from version 1.0 (2026-08-12).
+    Version 1.2 updates the current identity references to V40. The permissions and
+    restrictions below are unchanged from version 1.1 (2026-08-17).
   </em>
 </p>
 
@@ -51,13 +51,9 @@ The **Renvor brand assets**:
 - the name **Renvor**, and the executable name **`renvor`** *(renamed from `renover` on
   2026-08-17 by ADR-0010 in the framework repository; the retired spelling remains covered,
   because a retired mark is still a mark)*
-- the Renvor mark and logo in every form, including the v21 assets in `public/assets/`
-  (`renvor-mark-v21.svg`, `renvor-mark-v21-dark.svg`, `renvor-lockup-v21-light.svg`,
-  `renvor-lockup-v21-dark.svg`, `renvor-wordmark-v21-light.svg`,
-  `renvor-wordmark-v21-dark.svg`, `renvor-favicon-v21-light.svg`,
-  `renvor-favicon-v21-dark.svg`, and the two brand-world illustrations) — **and the superseded
-  v7 mark, favicon, and dark variant**, which are no longer shipped here but are not thereby
-  released
+- the Renvor mark and logo in every form, including the current V40 Rail Knot marks, lockups,
+  favicons, and Parallel Passage support assets in `public/assets/` — **and every superseded
+  V39, V21, and V7 identity**, whether or not an older asset remains shipped here
 - wordmarks, illustrations, icon sets, colour-and-type combinations, and other visual
   identity produced for Renvor
 - the overall visual identity of the Renvor website
