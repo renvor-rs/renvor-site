@@ -127,7 +127,7 @@ export default function SolutionTabs() {
           <pre tabIndex={0} role="region" aria-label="Illustrative capability trait, code sample">
             <code>{CONTRACT}</code>
           </pre>
-          <p className="mono">illustrative shape — not a published API</p>
+          <p className="mono">illustrative shape / not a published API</p>
         </div>
       </div>
     </article>

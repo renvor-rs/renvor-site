@@ -7,48 +7,47 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 gsap.registerPlugin(ScrollTrigger);
 
 /* Five panels tracing the intended system end to end.
-   Panel 02 is the only one describing something that exists. It says so, and the others say
-   the opposite just as plainly — a page that hedges every claim equally tells a reader
-   nothing about which parts are real. */
+   The CLI and core panels describe implemented work. Every panel states its own evidence and
+   limits plainly so planned capabilities cannot be mistaken for shipped product. */
 const PANELS = [
   {
-    index: 'impression 01 / 05',
+    id: 'cli',
     name: 'Interactive CLI',
-    roadmap: 'Planned for 1.0',
-    state: 'not built',
+    roadmap: 'Delivered in Phase 003 · unpublished',
+    state: 'implemented and tested',
     title: 'Ask the decisions that shape the project.',
-    text: 'The wizard is designed to adapt its questions to the selected transport, database, ORM, authentication, frontend, styling, desktop, and deployment target. It is not implemented, and no executable exists.',
+    text: 'The `renvor` command and its transactional project generator are implemented and tested. The wizard records transport choices, supports flags and machine-readable output, and refuses unsafe writes. Nothing is published, so generated projects cannot yet resolve a Renvor dependency.',
     visual: 'wizard',
   },
   {
-    index: 'impression 02 / 05',
+    id: 'core',
     name: 'Stable core',
     roadmap: 'Delivered in Phase 002 · API unstable',
     state: 'implemented and tested',
     title: 'Keep transports outside the application service.',
-    text: 'The kernel owns the lifecycle, provider registration and dependency resolution, layered configuration, cancellation, bounded deadlines, and independent liveness and readiness. It is transport-independent by requirement: there is no HTTP server and no way to receive a request. REST, CLI, and later GraphQL are meant to call it through visible typed interfaces — none of them exists yet.',
+    text: 'The kernel owns the lifecycle, provider registration and dependency resolution, layered configuration, cancellation, bounded deadlines, and independent liveness and readiness. It stays transport-independent by requirement. The CLI and opt-in REST and HTTP adapter call it through visible boundaries; GraphQL does not exist.',
     visual: 'boundary',
   },
   {
-    index: 'impression 03 / 05',
+    id: 'ports',
     name: 'Capability ports',
-    roadmap: 'Planned for 1.0',
-    state: 'port shape only',
+    roadmap: 'Delivered in Phases 006–009 · unpublished',
+    state: 'partly implemented and tested',
     title: 'Use mature crates without binding the whole app to them.',
-    text: 'Narrow boundaries are designed to isolate persistence, mail, queues, storage, cache, and observability so implementations can evolve independently. The kernel defines the provider and configuration ports; no persistence, mail, queue, storage, or cache implementation exists.',
+    text: 'Narrow boundaries isolate capabilities so implementations can evolve independently. Persistence ports have SQLx and SeaORM adapters tested on PostgreSQL and MySQL, and authentication defines mail and audit ports with deterministic recording sinks. Production mail, queue, storage, and cache adapters do not exist, and persistence and authentication are not exposed through the facade.',
     visual: 'ports',
   },
   {
-    index: 'impression 04 / 05',
+    id: 'clients',
     name: 'Full-stack contract',
     roadmap: 'Planned for 3.0',
     state: 'not built',
     title: 'Generate clients from one versioned API shape.',
-    text: 'Backend contracts, frontend types, auth state, error handling, and regeneration rules are designed to stay synchronised across Rust and Next.js clients. No generator exists, and there is no API to generate from.',
+    text: 'Backend contracts, frontend types, auth state, error handling, and regeneration rules are designed to stay synchronised across Rust and Next.js clients. No client generator or published API endpoint exists.',
     visual: 'clients',
   },
   {
-    index: 'impression 05 / 05',
+    id: 'packages',
     name: 'Package ecosystem',
     roadmap: 'Planned for 4.0',
     state: 'not built',
@@ -65,10 +64,10 @@ function PanelVisual({ kind }: { kind: (typeof PANELS)[number]['visual'] }) {
         <div className="wizard-visual">
           <span className="mono">Project setup</span>
           <strong>Which database?</strong>
-          <div className="wizard-option selected mono">PostgreSQL ✓</div>
+          <div className="wizard-option selected mono">PostgreSQL / selected</div>
           <div className="wizard-option mono">MySQL</div>
           <code>4 of 9 decisions</code>
-          <em className="mockup-note">Design mock-up — this wizard does not exist</em>
+          <em className="mockup-note">Illustrative state. The CLI exists only in source today.</em>
         </div>
       );
     case 'boundary':
@@ -77,7 +76,7 @@ function PanelVisual({ kind }: { kind: (typeof PANELS)[number]['visual'] }) {
           <span>REST</span>
           <span>GraphQL</span>
           <span>CLI</span>
-          <em>adapters detach — the core stays</em>
+          <em>adapters detach / the core stays</em>
         </div>
       );
     case 'ports':
@@ -109,10 +108,10 @@ function PanelVisual({ kind }: { kind: (typeof PANELS)[number]['visual'] }) {
       return (
         <div className="packages-visual">
           <code>renvor add renvor-rbac</code>
-          <p className="mono">✓ package registered</p>
-          <p className="mono">✓ migrations discovered</p>
-          <p className="mono">✓ policy tests passed</p>
-          <em className="mockup-note">Design mock-up — this command does not exist</em>
+          <p className="mono">package / registered</p>
+          <p className="mono">migrations / discovered</p>
+          <p className="mono">policy tests / passed</p>
+          <em className="mockup-note">Design mock-up. This command does not exist.</em>
         </div>
       );
   }
@@ -158,19 +157,18 @@ export default function Panorama() {
     <section id="panorama" className="panorama" ref={sectionRef} data-panorama>
       <div className="panorama-track" ref={trackRef} data-panorama-track>
         <div className="panorama-intro">
-          <p className="register-label mono">register 02 / the design, end to end</p>
-          <h2>From first answer to installed capability.</h2>
+          <p className="section-kicker mono">One route / end to end</p>
+          <h2>Trace the intended system without mistaking plans for product.</h2>
           <span className="panorama-caveat">
-            One of the five panels describes something that exists today — the core. Each panel
-            states which it is.
+            Three panels describe implemented work today: the CLI, core, and selected capability
+            ports. Every panel states its evidence and limits plainly.
           </span>
-          <span className="panorama-hint mono">Scroll to trace the system →</span>
+          <span className="panorama-hint mono">Scroll to trace the system</span>
         </div>
 
         {PANELS.map((panel) => (
-          <article className="panorama-panel" key={panel.index}>
+          <article className="panorama-panel" key={panel.id}>
             <div className="panorama-copy">
-              <span className="panel-index mono">{panel.index}</span>
               <p className="panel-name">{panel.name}</p>
               <span className="roadmap-badge mono">{panel.roadmap}</span>
               <span className="panel-state mono">{panel.state}</span>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" role="img" aria-labelledby="title desc">
+  <title id="title">Renvor Parallel Passage sparse pattern - light</title>
+  <desc id="desc">A sparse field of two parallel routes using one 30-degree transition. Routes never cross and the support device is never part of the master logo.</desc>
+  <rect width="400" height="400" fill="#F5F6F2"/>
+  <path d="M-200 -40H-120L-70 -11H60" fill="none" stroke="#171811" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M-200 15H-120L-70 44H60" fill="none" stroke="#F0C400" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M100 -40H180L230 -11H360" fill="none" stroke="#171811" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M100 15H180L230 44H360" fill="none" stroke="#F0C400" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M400 -40H480L530 -11H660" fill="none" stroke="#171811" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M400 15H480L530 44H660" fill="none" stroke="#F0C400" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M-80 230H0L50 259H180" fill="none" stroke="#171811" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M-80 285H0L50 314H180" fill="none" stroke="#F0C400" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M220 230H300L350 259H480" fill="none" stroke="#171811" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M220 285H300L350 314H480" fill="none" stroke="#F0C400" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M-200 500H-120L-70 529H60" fill="none" stroke="#171811" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M-200 555H-120L-70 584H60" fill="none" stroke="#F0C400" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M100 500H180L230 529H360" fill="none" stroke="#171811" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M100 555H180L230 584H360" fill="none" stroke="#F0C400" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M400 500H480L530 529H660" fill="none" stroke="#171811" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M400 555H480L530 584H660" fill="none" stroke="#F0C400" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

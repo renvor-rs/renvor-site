@@ -10,9 +10,9 @@ Rust developers, full-stack teams, framework migrants, and backend organizations
 
 ## Purpose
 
-Present Renvor's **design** for connected application infrastructure, and its **actual state**, in the same view. The page exposes the interactive generator, stable core, transports, persistence, authentication, frontend and desktop delivery, package ecosystem, lifecycle, operations, security, and documentation through progressively richer product surfaces — each labelled with the release that owns it.
+Present Renvor's **design** for connected application infrastructure, and its **actual state**, in the same view. The page exposes the interactive generator, stable core, transports, persistence, authentication, frontend and desktop delivery, package ecosystem, lifecycle, operations, security, and documentation through progressively richer product surfaces, each labelled with the phase or release that owns it.
 
-Every one of those surfaces is unbuilt. The page must not read as a product tour of working software.
+Phases 002 through 009 are implemented and tested locally: the kernel, `renvor` CLI and transactional generator, opt-in REST and HTTP adapter, validation boundary, RFC 9457 errors, OpenAPI 3.2 description, SQLx and SeaORM persistence adapters across PostgreSQL and MySQL, and authentication with sessions, policies, and optional tokens. Frontend and desktop generation and installable packages remain unbuilt. Nothing is published, no supported installation path exists, generated projects cannot resolve Renvor, and every API is unstable. The page must distinguish implemented evidence from planned product without reading like a shipped release tour.
 
 ## Personality
 
@@ -29,11 +29,11 @@ Expansive, exact, optimistic, and technically substantial.
 
 This is a future production-launch concept. Production-readiness language can be published only after the matching release gates in `PLAN.md` are complete.
 
-**Applied 2026-08-12.** The page previously announced a "Renvor 4.0 production release" and a "Renvor 4.0 stable" documentation section, and linked to `docs.renvor.dev` and `crates.io/crates/renvor` — none of which exist. Those claims are corrected, and the constraint is now enforced by three rules:
+**Applied 2026-08-12.** The page previously announced a "Renvor 4.0 production release" and a "Renvor 4.0 stable" documentation section before either claim was true. Those claims are corrected, and the constraint is now enforced by three rules:
 
 1. **A prominent development-status notice renders above the hero**, outside every GSAP timeline, so it survives reduced motion and a scripting failure.
-2. **Every capability carries a release label** — `Planned for Renvor 1.0` through `4.0` — sourced from the framework's `PLAN.md`, not chosen here.
-3. **No CTA points at an unresolvable destination.** Only `github.com/renvor-rs/renvor` and its in-repository documents are linked.
+2. **Every capability carries an evidence label** — an implemented phase or a planned Renvor release — sourced from the framework's `README.md` and `PLAN.md`, not chosen here.
+3. **No CTA points at an unresolvable destination.** External links are limited to the first-party documentation at `docs.renvor.dev` and `github.com/renvor-rs/renvor` with its in-repository documents.
 
 ### When production-readiness language may return
 

@@ -8,10 +8,10 @@
  *
  * The prototype carried each tab icon as a raw SVG string rendered through
  * `dangerouslySetInnerHTML`. That is replaced by `lucide-react` components: the icons come
- * from a maintained set instead of hand-copied markup, they inherit `currentColor` and stroke
- * width from CSS, and — the reason it matters for this site specifically — the page then
- * contains no `dangerouslySetInnerHTML` at all, so there is no HTML-injection sink to reason
- * about when reviewing the strict CSP.
+ * from a maintained set instead of hand-copied markup, and they inherit `currentColor` and
+ * stroke width from CSS. This removes HTML injection from the data-driven content surface.
+ * The only remaining `dangerouslySetInnerHTML` is the constant, CSP-hashed theme bootstrap in
+ * `layout.tsx`; no content value reaches it.
  */
 
 import { Database, Fingerprint, GalleryHorizontalEnd, Workflow } from 'lucide-react';
@@ -35,26 +35,26 @@ export const SOLUTION_ICONS: Record<SolutionId, LucideIcon> = {
 
 export const SOLUTIONS: Record<SolutionId, Solution> = {
   backend: {
-    roadmap: 'Planned for Renvor 1.0',
-    title: 'Typed services with visible work.',
-    copy: 'The design: REST — and opt-in GraphQL in 2.0 — will enter through transport adapters, then reuse the same application services, policies, transactions, and error vocabulary. No transport adapter exists. The kernel those adapters are meant to call does.',
-    list: ['OpenAPI 3.2 contract', 'Shared service layer', 'Explicit async and transactions'],
+    roadmap: 'Delivered in Phase 004 / unpublished',
+    title: 'A visible route into the service.',
+    copy: 'The opt-in REST and HTTP delivery adapter is implemented and tested against real routers. It owns declarative routes, middleware order, trusted-proxy identity, host validation, CORS, limits, and graceful drain. GraphQL is planned for 2.0 and does not exist.',
+    list: ['Real-router test evidence', 'OpenAPI 3.2 description', 'Fail-closed request boundaries'],
   },
   data: {
-    roadmap: 'Planned for Renvor 1.0',
-    title: 'Persistence chosen at the boundary.',
-    copy: 'The design: SQLx or SeaORM with PostgreSQL or MySQL, where generated adapters carry migrations, fixtures, health checks, and transaction ownership. No database adapter, migration, or generator exists yet.',
-    list: ['SQLx or SeaORM', 'PostgreSQL or MySQL', 'Repository capability ports'],
+    roadmap: 'Delivered in Phases 006–008 / unpublished',
+    title: 'Persistence owned at the junction.',
+    copy: 'Driver-neutral repository and unit-of-work ports are implemented by both direct SQLx and SeaORM adapters. The same migrations and compatibility tests run on PostgreSQL and MySQL; the facade does not expose these adapters yet.',
+    list: ['SQLx and SeaORM adapters', 'PostgreSQL and MySQL evidence', 'Repository capability ports'],
   },
   identity: {
-    roadmap: 'Backend planned for 1.0 · screens for 3.0',
-    title: 'Authentication that reaches the screen.',
-    copy: 'The design: backend auth flows in 1.0, with matching frontend routes, forms, state, recovery, and verification arriving in 3.0. RBAC is a 4.0 package. Nothing generates authentication today.',
-    list: ['Session or token flows', 'Argon2 credentials', 'RBAC package planned for 4.0'],
+    roadmap: 'Backend delivered in Phase 009 / UI planned for 3.0',
+    title: 'Identity with one accountable route.',
+    copy: 'The authentication domain and HTTP adapter implement registration, verification, recovery, cookie sessions, CSRF binding, policies, audit events, and optional JWT and refresh-token flows. No generated authentication UI exists yet.',
+    list: ['Argon2id credentials', 'Opaque sessions or optional tokens', 'RBAC package planned for 4.0'],
   },
   delivery: {
     roadmap: 'Planned for Renvor 3.0',
-    title: 'Web, Rust UI, and desktop targets.',
+    title: 'Delivery without hiding the boundary.',
     copy: 'The design: Next.js, Yew, Dioxus, or Leptos clients with CSS, SCSS, or optional Tailwind CSS, and Tauri packaging for supported static clients. No client generator exists yet.',
     list: ['Four frontend frameworks', 'Three styling systems', 'Tauri desktop target'],
   },
@@ -62,15 +62,15 @@ export const SOLUTIONS: Record<SolutionId, Solution> = {
 
 export const LENSES = [
   {
-    title: 'Strong types stay visible',
-    copy: 'Handlers, services, policies, ports, configuration, and errors are meant to stay ordinary Rust types with searchable ownership. The Phase 002 kernel already works this way. The generators that would produce the rest of an application do not exist.',
+    title: 'Routes stay visible',
+    copy: 'Handlers, services, policies, ports, configuration, and errors stay ordinary Rust types with searchable ownership. The tested kernel, transactional generator, and opt-in REST adapter use this shape today. Frontend and package generation do not exist.',
   },
   {
-    title: 'Packages remain replaceable',
+    title: 'The junction stays owned',
     copy: 'Mature ecosystem crates sit behind narrow framework boundaries, so an application keeps a stable contract without freezing an implementation choice. The project applies that rule to itself and departs from it only through a recorded, reviewed decision.',
   },
   {
-    title: 'Operations are designed in',
-    copy: 'Diagnostics, health, readiness, draining, and rollback belong to the shape of an application rather than arriving later. Liveness and readiness answer independently in the kernel today; telemetry, deployment, and recovery tooling are planned for 1.0.',
+    title: 'Evidence stays readable',
+    copy: 'Diagnostics, health, readiness, draining, and rollback belong to the shape of an application rather than arriving later. The workspace also tests both persistence models and the authentication domain across PostgreSQL and MySQL. Telemetry and application deployment tooling remain planned.',
   },
 ];

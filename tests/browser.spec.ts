@@ -189,6 +189,8 @@ test.describe('rendering', () => {
 
     await expect(page.getByRole('link', { name: 'Renvor home' })).toBeVisible();
     await expect(page.getByRole('note', { name: 'Project status' })).toBeVisible();
+    await expect(page.locator('[data-hero-identity="rail-knot-v40"]')).toBeVisible();
+    await expect(page.locator('.hero-brand img[src*="renvor-mark-v40-"]')).toHaveCount(2);
 
     // The lifecycle is the one claim the page can currently point at, so it must be present
     // as text on every engine — not only as a canvas a WebKit build might refuse to create.
@@ -241,6 +243,12 @@ test.describe('rendering', () => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     await expect(page.locator('.register-stages li')).toHaveCount(7);
     await expect(page.getByRole('note', { name: 'Project status' })).toBeVisible();
+    await expect(page.locator('.hero-no-webgl [data-hero-identity="rail-knot-v40"]')).toBeVisible();
+    await expect(page.locator('.hero-no-webgl .hero-fallback-mark:visible')).toHaveAttribute(
+      'src',
+      /renvor-mark-v40-(light|dark)\.svg/,
+    );
+    await expect(page.locator('.hero-fallback i, .hero-fallback span')).toHaveCount(0);
     expect(
       console_.rejections,
       `a failed WebGL context must not throw into the page:\n${console_.rejections.join('\n')}`,

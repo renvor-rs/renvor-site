@@ -1,64 +1,32 @@
 import Header from './components/Header';
+import AmbientField from './components/AmbientField';
 import Hero from './components/Hero';
-import SolutionTabs from './components/SolutionTabs';
-import Panorama from './components/Panorama';
 import LensCarousel from './components/LensCarousel';
+import Panorama from './components/Panorama';
 import ScrollFX from './components/ScrollFX';
+import SolutionTabs from './components/SolutionTabs';
 
-/* Bar heights for the two register charts live in `globals.css`, keyed by `:nth-child`, not
-   in a `style` attribute here. That is a CSP decision: a `style` attribute is governed by
-   `style-src`, so keeping any would force either `'unsafe-inline'` or `'unsafe-hashes'` into
-   the production policy for the sake of fourteen numbers. Moving them to the stylesheet lets
-   the policy stay `style-src 'self'` with no escape hatch at all.
-
-   The seven lifecycle impressions, in order. This ordering is the product's central claim and
-   is implemented in the Phase 002 kernel — `LifecyclePhase` in `renvor-core` has exactly these
-   seven variants in exactly this sequence. Changing this array without changing the kernel
-   would make the page lie about the one thing it can currently point at. */
 const STAGE_NAMES = ['Load', 'Validate', 'Register', 'Boot', 'Ready', 'Drain', 'Stop'];
-const pad = (n: number) => String(n).padStart(2, '0');
 
 const STATEMENT =
-  'The intended shape: a request enters through a transport, crosses policy and transaction boundaries in the application service, reaches replaceable capability ports, and returns through one typed error contract.';
+  'A request enters through one visible route, crosses policy and transaction boundaries at an owned junction, reaches replaceable capability ports, and returns through one typed error contract.';
 
-const CLIENT_ROWS = [
-  { name: 'Next.js', copy: 'SSR or CSR for web. Static CSR for Tauri.' },
-  { name: 'Yew', copy: 'Component-based Rust UI with typed clients.' },
-  { name: 'Dioxus', copy: 'Hooks-based Rust UI across supported targets.' },
-  { name: 'Leptos', copy: 'Fine-grained reactive Rust applications.' },
-  { name: 'Tauri', copy: 'Desktop packaging for supported static clients.' },
-];
-
-const OPERATION_COLUMNS = [
+const ROUTE_LEDGER = [
   {
-    index: 'impression a',
-    title: 'Security gates',
-    body: 'Secret scanning, dependency and licence policy, redaction, bounded work, safe defaults, and release attestations.',
-    note: 'Secret scanning, licence policy, and release attestation run today on the framework repository. Secret redaction and bounded work are implemented in the kernel. Deployment-time controls are planned.',
+    title: 'Lifecycle and provider graph',
+    state: 'Phase 002 / implemented and tested',
+    copy: 'The kernel owns ordered phases, dependency resolution, bounded work, rollback, liveness, and readiness.',
   },
   {
-    index: 'impression b',
-    title: 'Diagnostics',
-    body: 'Actionable startup failures, configuration validation, generated-project checks, and package health diagnostics.',
-    note: 'Startup failures and configuration validation are implemented and tested in the kernel. Project and package diagnostics need a generator and a package system, and are planned for 1.0 and 4.0.',
+    title: 'REST, validation, and API description',
+    state: 'Phases 004 and 005 / implemented and tested',
+    copy: 'The opt-in REST and HTTP adapter, runtime validation, RFC 9457 failures, OpenAPI 3.2 generation, and compatibility gate run in workspace tests.',
   },
   {
-    index: 'impression c',
-    title: 'Observability',
-    body: 'Structured logs, traces, metrics, health, readiness, graceful drain, shutdown, rollback, and recovery.',
-    note: 'Phase spans, independent liveness and readiness, the drain gate, and rollback on failed boot are implemented. Metrics export and deployment recovery are planned for 1.0.',
+    title: 'Persistence, identity, clients, and packages',
+    state: 'Phases 006–009 delivered / unpublished',
+    copy: 'SQLx and SeaORM adapters, four-row database evidence, authentication, sessions, and optional tokens exist. Client generation, desktop packaging, and installable packages do not.',
   },
-];
-
-const PACKAGES = [
-  'renvor-auth',
-  'renvor-rbac',
-  'renvor-storage',
-  'renvor-mail',
-  'renvor-jobs',
-  'renvor-cache',
-  'renvor-observe',
-  'renvor-testing',
 ];
 
 export default function Page() {
@@ -66,342 +34,510 @@ export default function Page() {
     <>
       <Header />
       <main id="top">
-        {/* Development-status notice. Deliberately outside every animation timeline: it must be
-            readable before any animation runs, under reduced motion, and if JavaScript fails
-            entirely. PLAN.md §26.6 makes this a release gate rather than a style choice. */}
         <aside className="status-notice" role="note" aria-label="Project status">
-          <span className="notice-label mono">registration note</span>
+          <span className="notice-label mono">In development / prerelease</span>
           <p>
-            <strong>Renvor is in active development and cannot be installed.</strong> Phase 002
-            delivers a tested transport-independent kernel. <strong>No crate, release, CLI,
-            network transport, database adapter, or generated project is available yet.</strong>
+            <strong>Renvor is in active development with no supported installation path.</strong>{' '}
+            Phases 002 through 009 implement and test the kernel, CLI, HTTP transport, validation,
+            persistence, and authentication. <strong>Nothing is published, the facade exposes
+            neither persistence nor authentication, and generated projects cannot yet resolve a
+            Renvor dependency.</strong>
           </p>
-          <p className="notice-detail">
-            What exists is a kernel that runs the seven-phase lifecycle below, resolves provider
-            dependencies within a counted work budget, layers configuration with per-key source
-            attribution and total secret redaction, bounds every call into your code with a
-            deadline, and answers liveness and readiness independently. It is tested on Rust
-            1.94.0 and stable. <strong>Its API is explicitly unstable</strong> and will change
-            once a real transport adapter exercises it.
-          </p>
-          <a href="https://github.com/renvor-rs/renvor/blob/main/PLAN.md">
-            Read what is actually planned ↗
-          </a>
+          <a href="https://github.com/renvor-rs/renvor/blob/main/PLAN.md">Read the public plan</a>
         </aside>
+
+        <AmbientField />
 
         <Hero />
 
-        {/* ============ REGISTER STRIP (seven impressions divider) ============ */}
-        <div className="register-strip" aria-label="The seven lifecycle impressions">
-          {STAGE_NAMES.map((name, i) => (
-            <div className="strip-cell" data-strip-cell key={name}>
-              <span className="strip-billets">
+        <div className="signal-loop" aria-label="Kernel lifecycle sequence">
+          <span className="sr-only">Load, Validate, Register, Boot, Ready, Drain, Stop</span>
+          <div className="signal-loop-track" aria-hidden="true">
+            {[...STAGE_NAMES, ...STAGE_NAMES].map((name, index) => (
+              <span className="mono" key={`${name}-${index}`}>
                 <i />
-              </span>
-              <span className="strip-name mono">
-                <i>{pad(i + 1)}</i>
                 {name}
               </span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {/* ============ §01 SOLUTIONS ============ */}
-        <section id="solutions" className="section solutions-section">
-          <div className="annot-grid">
-            <aside className="annot" data-reveal>
-              <span className="register-label mono">register 01 / surfaces</span>
-              <span className="annot-note mono">four surfaces · one core · none delivered</span>
-            </aside>
-            <div className="annot-content">
-              <div className="section-heading" data-reveal>
-                <h2>Every application surface is designed to connect to one stable core.</h2>
-                <p>
-                  Renvor aims to provide a coherent default path while preserving the boundaries
-                  that experienced Rust teams need to inspect and change.{' '}
-                  <strong>
-                    Each surface below carries the release that owns it, and none of the four has
-                    been delivered.
-                  </strong>{' '}
-                  The core they are designed to connect to is the part that exists.
-                </p>
-              </div>
-              <SolutionTabs />
-              <div className="solution-side">
-                <article data-solution-card>
-                  <span className="roadmap-badge mono">Planned for Renvor 1.0</span>
-                  <h3>Interactive generation</h3>
-                  <p>
-                    Questions are designed to adapt to previous answers, stopping invalid
-                    combinations before generation.
-                  </p>
-                  <code className="unavailable-command">renvor new</code>
-                  <em className="unavailable-note">
-                    Not installable — the CLI is unbuilt and unpublished
-                  </em>
-                </article>
-                <article data-solution-card>
-                  <span className="roadmap-badge mono">Planned for Renvor 4.0</span>
-                  <h3>Installable packages</h3>
-                  <p>
-                    The design adds RBAC and later capabilities to existing projects through a
-                    versioned package contract.
-                  </p>
-                  <code className="unavailable-command">renvor add renvor-rbac</code>
-                  <em className="unavailable-note">
-                    Not installable — no package has been published
-                  </em>
-                </article>
+        <section id="solutions" className="section system-section">
+          <div className="section-intro boundary-manifesto" data-boundary-manifesto>
+            <figure className="boundary-map">
+              <svg
+                viewBox="0 0 470 360"
+                role="img"
+                aria-labelledby="boundary-map-title boundary-map-description"
+                focusable="false"
+              >
+                <title id="boundary-map-title">Two routes through visible framework gates</title>
+                <desc id="boundary-map-description">
+                  The REST and HTTP route passes through validation, and the CLI and generator
+                  route passes through configuration. Both enter an ordinary Rust application core.
+                </desc>
+
+                <g className="boundary-map-grid" aria-hidden="true">
+                  <path d="M26 60H444M26 180H444M26 300H444" />
+                  <path d="M26 60V300M238 60V300M444 60V300" />
+                </g>
+                <g className="boundary-map-headings" aria-hidden="true">
+                  <text x="26" y="36">framework inputs</text>
+                  <text x="238" y="36" textAnchor="middle">visible gates</text>
+                  <text x="444" y="36" textAnchor="end">application core</text>
+                </g>
+
+                <path className="boundary-plane" d="M238 70V290" aria-hidden="true" />
+
+                <path
+                  className="boundary-route boundary-route-signal"
+                  data-boundary-route
+                  d="M28 112H152L238 150H354"
+                />
+                <path
+                  className="boundary-route boundary-route-core"
+                  data-boundary-route
+                  d="M28 258H152L238 220H354"
+                />
+
+                <g className="boundary-input boundary-input-signal" aria-hidden="true">
+                  <rect x="28" y="103" width="18" height="18" />
+                  <text x="28" y="92">REST + HTTP</text>
+                </g>
+                <g className="boundary-input boundary-input-core" aria-hidden="true">
+                  <rect x="28" y="249" width="18" height="18" />
+                  <text x="28" y="287">CLI + generator</text>
+                </g>
+
+                <g className="boundary-gate" data-boundary-gate aria-hidden="true">
+                  <rect x="226" y="136" width="24" height="28" />
+                  <circle cx="238" cy="150" r="4" />
+                  <text x="218" y="112" textAnchor="end">validation</text>
+                </g>
+                <g className="boundary-gate" data-boundary-gate aria-hidden="true">
+                  <rect x="226" y="206" width="24" height="28" />
+                  <circle cx="238" cy="220" r="4" />
+                  <text x="218" y="268" textAnchor="end">configuration</text>
+                </g>
+
+                <g className="boundary-core" data-boundary-core aria-hidden="true">
+                  <rect x="354" y="86" width="90" height="204" />
+                  <text x="399" y="154" textAnchor="middle">ordinary</text>
+                  <text className="boundary-core-rust" x="399" y="192" textAnchor="middle">Rust</text>
+                  <text x="399" y="218" textAnchor="middle">application</text>
+                  <text x="399" y="238" textAnchor="middle">core</text>
+                </g>
+
+              </svg>
+            </figure>
+
+            <div className="boundary-manifesto-copy" data-boundary-copy>
+              <p className="section-kicker mono">Visible routes / explicit ownership</p>
+              <h2>The framework boundary should stay readable when the system gets real.</h2>
+              <p>
+                Renvor is being designed around one strong idea: framework choices belong at
+                visible boundaries, while application services stay ordinary Rust. The kernel,
+                CLI, generator, REST and HTTP adapter, validation boundary, and API description now
+                prove that shape in workspace tests. The broader application stack is still being built.
+              </p>
+
+              <div className="boundary-evidence-wrap">
+                <span className="boundary-evidence-track" data-boundary-evidence-track aria-hidden="true" />
+                <ol className="boundary-evidence" aria-label="Framework boundary evidence route">
+                  <li data-boundary-evidence>
+                    <i aria-hidden="true" />
+                    <span className="mono">Framework inputs</span>
+                    <strong>CLI + HTTP</strong>
+                  </li>
+                  <li data-boundary-evidence>
+                    <i aria-hidden="true" />
+                    <span className="mono">Visible gates</span>
+                    <strong>validation + configuration</strong>
+                  </li>
+                  <li data-boundary-evidence>
+                    <i aria-hidden="true" />
+                    <span className="mono">Application core</span>
+                    <strong>ordinary Rust</strong>
+                  </li>
+                </ol>
               </div>
             </div>
           </div>
+
+          <div className="proof-bento" data-proof-board>
+            <article className="proof-primary">
+              <div className="proof-route" aria-hidden="true">
+                <svg
+                  className="proof-junction-map"
+                  viewBox="0 0 880 320"
+                  role="presentation"
+                  focusable="false"
+                >
+                  <g className="proof-map-grid">
+                    <path d="M48 48H832M48 160H832M48 272H832" />
+                    <path d="M48 48V272M244 48V272M440 48V272M636 48V272M832 48V272" />
+                  </g>
+                  <g className="proof-map-labels mono">
+                    <text x="48" y="26">CONTROL ROUTE / PHASE 002 TO 009</text>
+                    <text x="832" y="26" textAnchor="end">JUNCTION J-05</text>
+                  </g>
+
+                  <path
+                    className="proof-rail proof-rail-core"
+                    data-proof-rail
+                    d="M64 96H278L408 160H816"
+                  />
+                  <path
+                    className="proof-rail proof-rail-signal"
+                    data-proof-rail
+                    d="M64 248H278L408 160L554 248H816"
+                  />
+
+                  <g className="proof-junction-node" data-proof-node>
+                    <circle cx="408" cy="160" r="20" />
+                    <circle cx="408" cy="160" r="5" />
+                    <path d="M408 132V116M408 188V204M380 160H364M436 160H452" />
+                  </g>
+
+                  <g className="proof-phase-marker" data-proof-phase>
+                    <circle cx="150" cy="96" r="8" />
+                    <path d="M150 112V134" />
+                    <text x="150" y="154" textAnchor="middle">002</text>
+                  </g>
+                  <g className="proof-phase-marker" data-proof-phase>
+                    <circle cx="294" cy="239" r="8" />
+                    <path d="M294 222V200" />
+                    <text x="294" y="190" textAnchor="middle">004</text>
+                  </g>
+                  <g className="proof-phase-marker" data-proof-phase>
+                    <circle cx="554" cy="160" r="8" />
+                    <path d="M554 144V122" />
+                    <text x="554" y="112" textAnchor="middle">006</text>
+                  </g>
+                  <g className="proof-phase-marker" data-proof-phase>
+                    <circle cx="706" cy="248" r="8" />
+                    <path d="M706 232V210" />
+                    <text x="706" y="200" textAnchor="middle">009</text>
+                  </g>
+                </svg>
+              </div>
+              <div className="proof-primary-copy">
+                <p className="mono">Phases 002 to 009 / implemented and tested</p>
+                <h3>A tested route through the junction.</h3>
+                <p>
+                  Seven ordered lifecycle phases, provider dependencies, layered configuration,
+                  bounded deadlines, cancellation, rollback, REST and HTTP delivery, runtime
+                  validation, Problem Details, OpenAPI 3.2, persistence, and authentication are
+                  implemented and tested.
+                </p>
+              </div>
+            </article>
+            <article className="proof-secondary">
+              <span className="proof-index mono">Configuration route</span>
+              <h3>Every value keeps its source.</h3>
+              <p>
+                Layered configuration retains per-key attribution while secrets stay redacted from
+                every diagnostic path.
+              </p>
+              <ol className="precedence-stack" aria-label="Configuration precedence order">
+                <li data-precedence-tier>
+                  <span className="mono">01</span>
+                  <strong>defaults</strong>
+                  <i className="mono">base</i>
+                </li>
+                <li data-precedence-tier>
+                  <span className="mono">02</span>
+                  <strong>file</strong>
+                  <i className="mono">layer</i>
+                </li>
+                <li data-precedence-tier>
+                  <span className="mono">03</span>
+                  <strong>environment</strong>
+                  <i className="mono">override</i>
+                </li>
+                <li data-precedence-tier>
+                  <span className="mono">04</span>
+                  <strong>CLI</strong>
+                  <i className="mono">explicit</i>
+                </li>
+              </ol>
+            </article>
+            <article className="proof-tertiary">
+              <span className="proof-index mono">Release route</span>
+              <h3>Implemented does not mean published.</h3>
+              <p>
+                No crate or executable is published. Generated projects cannot resolve Renvor,
+                and the implemented database and authentication crates are not reachable through
+                the facade.
+              </p>
+              <ul className="release-ledger" aria-label="Current release status">
+                <li data-release-status>
+                  <span className="mono">workspace</span>
+                  <strong>tested</strong>
+                </li>
+                <li data-release-status>
+                  <span className="mono">registry</span>
+                  <strong>unpublished</strong>
+                </li>
+                <li data-release-status>
+                  <span className="mono">install</span>
+                  <strong>unavailable</strong>
+                </li>
+              </ul>
+            </article>
+          </div>
+
+          <SolutionTabs />
+
+          <div className="command-pair" data-stagger-group>
+            <article>
+              <span className="mono">Phase 003 / implemented and tested / unpublished</span>
+              <h3>Transactional project generation</h3>
+              <p>The CLI and generator run from source, preserve safe writes, and record project choices.</p>
+              <code className="unavailable-command">renvor new</code>
+              <em className="unavailable-note">
+                No supported install command exists. The CLI is implemented and tested, but no package is published.
+              </em>
+            </article>
+            <article>
+              <span className="mono">Planned for Renvor 4.0</span>
+              <h3>Installable capability packages</h3>
+              <p>Packages are designed to join existing projects through a versioned contract.</p>
+              <code className="unavailable-command">renvor add renvor-rbac</code>
+              <em className="unavailable-note">Unavailable. No package has been published.</em>
+            </article>
+          </div>
         </section>
 
-        {/* ============ ARCHITECTURE STATEMENT ============ */}
-        <section className="architecture-statement" data-architecture-statement>
-          <span className="register-label mono">recorded intent</span>
-          <p data-architecture-text>
-            {STATEMENT.split(/\s+/).map((word, i) => (
-              <span data-architecture-word key={`${word}-${i}`}>
-                {word}{' '}
-              </span>
-            ))}
-          </p>
+        <section
+          className="architecture-statement"
+          data-architecture-trace
+          aria-labelledby="architecture-trace-title"
+        >
+          <header className="architecture-trace-header">
+            <h2 id="architecture-trace-title">One request. Four visible stages.</h2>
+            <p>{STATEMENT}</p>
+          </header>
+
+          <div className="architecture-trace-composition">
+            <svg
+              className="architecture-route-map"
+              viewBox="0 0 1200 330"
+              role="img"
+              aria-labelledby="architecture-route-title architecture-route-description"
+              focusable="false"
+            >
+              <title id="architecture-route-title">Request and typed return route</title>
+              <desc id="architecture-route-description">
+                An HTTP and REST request enters the system, crosses an owned policy and transaction
+                junction, reaches a replaceable capability port, and returns through an RFC 9457
+                Problem Details contract.
+              </desc>
+
+              <g className="architecture-route-grid" aria-hidden="true">
+                <path d="M52 52H1148M52 165H1148M52 278H1148" />
+                <path d="M52 52V278M326 52V278M600 52V278M874 52V278M1148 52V278" />
+              </g>
+
+              <g className="architecture-route-labels" aria-hidden="true">
+                <text x="52" y="34">request</text>
+                <text x="1148" y="34" textAnchor="end">typed return</text>
+              </g>
+
+              <path
+                className="architecture-route architecture-route-outbound"
+                data-architecture-route
+                d="M58 118H310L374 82H648L712 118H1088"
+              />
+              <path
+                className="architecture-route architecture-route-return"
+                data-architecture-route
+                d="M1088 220H712L648 256H374L310 220H58"
+              />
+              <path
+                className="architecture-return-link"
+                data-architecture-route
+                d="M1088 118V220"
+              />
+
+              <g className="architecture-node architecture-node-entry" data-architecture-node aria-hidden="true">
+                <rect x="86" y="103" width="30" height="30" />
+                <text x="101" y="122" textAnchor="middle">01</text>
+              </g>
+              <g className="architecture-node" data-architecture-node aria-hidden="true">
+                <rect x="359" y="67" width="30" height="30" />
+                <text x="374" y="86" textAnchor="middle">02</text>
+              </g>
+              <g className="architecture-node" data-architecture-node aria-hidden="true">
+                <rect x="697" y="103" width="30" height="30" />
+                <text x="712" y="122" textAnchor="middle">03</text>
+              </g>
+              <g className="architecture-node architecture-node-return" data-architecture-node aria-hidden="true">
+                <rect x="1073" y="154" width="30" height="30" />
+                <text x="1088" y="173" textAnchor="middle">04</text>
+              </g>
+            </svg>
+
+            <ol className="architecture-stages" aria-label="Ordered request trace">
+              <li data-architecture-stage>
+                <span className="architecture-stage-index mono">01 / Entry</span>
+                <h3>HTTP / REST</h3>
+                <p>A request enters through one visible transport route.</p>
+              </li>
+              <li data-architecture-stage>
+                <span className="architecture-stage-index mono">02 / Owned junction</span>
+                <h3>Policy + transaction</h3>
+                <p>Policy and transaction boundaries meet at one owned junction.</p>
+              </li>
+              <li data-architecture-stage>
+                <span className="architecture-stage-index mono">03 / Capability port</span>
+                <h3>Provider boundary</h3>
+                <p>The route reaches a replaceable capability through its provider boundary.</p>
+              </li>
+              <li data-architecture-stage>
+                <span className="architecture-stage-index mono">04 / Typed return</span>
+                <h3>RFC 9457</h3>
+                <p>Failures return through one typed Problem Details contract.</p>
+              </li>
+            </ol>
+          </div>
         </section>
 
-        {/* ============ §02 PANORAMA ============ */}
         <Panorama />
 
-        {/* ============ §03 FULL-STACK ============ */}
-        <section id="fullstack" className="section fullstack-section">
-          <div className="annot-grid">
-            <aside className="annot" data-reveal>
-              <span className="register-label mono">register 03 / delivery targets</span>
-              <span className="roadmap-badge mono">Planned for Renvor 3.0</span>
-            </aside>
-            <div className="annot-content">
-              <div className="section-heading" data-reveal>
-                <h2>One backend contract. The frontend your team prefers.</h2>
-                <p>
-                  The design: generated clients sharing versioned types, authentication state,
-                  error behaviour, and contract regeneration, with styling a project choice rather
-                  than a framework requirement.{' '}
-                  <strong>
-                    No client generator exists, and none of the five targets below is supported
-                    today.
-                  </strong>
-                </p>
-              </div>
-
-              <div className="client-rows" data-stagger-group>
-                {CLIENT_ROWS.map((row, i) => (
-                  <article key={row.name}>
-                    <span className="mono">target {pad(i + 1)}</span>
-                    <h3>{row.name}</h3>
-                    <p>{row.copy}</p>
-                    <div className="mono">CSS · SCSS · Tailwind</div>
-                  </article>
-                ))}
-              </div>
-
-              <div className="auth-starter" data-reveal>
-                <div>
-                  <span className="roadmap-badge mono">
-                    Backend planned for 1.0 · screens for 3.0
-                  </span>
-                  <h3>Authentication is designed to reach across the stack.</h3>
-                  <p>
-                    Backend routes, credential handling, verification, recovery, rate limits, and
-                    audit events are planned for 1.0; frontend screens, typed state, and
-                    end-to-end tests for 3.0.{' '}
-                    <strong>Nothing generates authentication today.</strong>
-                  </p>
-                </div>
-                <div className="auth-flow mono" aria-label="Planned authentication flow">
-                  <span>Register</span>
-                  <i aria-hidden="true">→</i>
-                  <span>Verify</span>
-                  <i aria-hidden="true">→</i>
-                  <span>Session</span>
-                  <i aria-hidden="true">→</i>
-                  <span>Policy</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ============ §04 OPERATIONS ============ */}
         <section id="operations" className="section operations-section">
-          <div className="annot-grid">
-            <aside className="annot" data-reveal>
-              <span className="register-label mono">register 04 / operations</span>
-              <span className="roadmap-badge mono">
-                Kernel implemented · deployment planned for 1.0
+          <div className="operations-heading">
+            <p className="section-kicker mono">Reviewed language / verified evidence</p>
+            <h2>A lifecycle with a way in, a way through, and a deliberate way out.</h2>
+            <p>
+              The sequence below is the current kernel, not a future promise. Assembly is
+              synchronous. Boot is asynchronous. Failed boot rolls back what it started.
+            </p>
+          </div>
+
+          <div
+            className="lifecycle-board"
+            data-lifecycle-board
+            data-loop-state="idle"
+            data-current-phase="01"
+            data-loop-cycle="0"
+            role="group"
+            aria-labelledby="lifecycle-board-title"
+          >
+            <header className="lifecycle-board-head">
+              <div>
+                <span className="mono">Kernel interlocking / ordered lifecycle</span>
+                <strong id="lifecycle-board-title">Seven phases. One controlled route.</strong>
+              </div>
+              <output className="lifecycle-readout mono" data-lifecycle-readout aria-live="off">
+                01 / Load
+              </output>
+            </header>
+
+            <div className="lifecycle-phase-field" data-lifecycle-field>
+              <span className="lifecycle-main-rail" aria-hidden="true" />
+              <span className="lifecycle-cursor" data-lifecycle-cursor aria-hidden="true">
+                <i />
               </span>
-            </aside>
-            <div className="annot-content">
-              <div className="section-heading" data-reveal>
-                <h2>Production behaviour is designed in, not added later.</h2>
-                <p>
-                  Lifecycle, diagnostics, observability, supply-chain policy, release evidence,
-                  and recovery are specified before the first production deployment.{' '}
-                  <strong>
-                    The lifecycle below is implemented and tested; the transports and adapters
-                    that would drive it in production are not.
-                  </strong>{' '}
-                  The governance, verification sequence, and release policy are real and public.
-                </p>
-              </div>
 
-              <div
-                className="lifecycle-register"
-                data-reveal
-                aria-label="Lifecycle: Load, Validate, Register, Boot, Ready, Drain, Stop"
+              <ol
+                className="lifecycle-phases"
+                aria-label="Load, Validate, Register, Boot, Ready, Drain, Stop"
               >
-                {STAGE_NAMES.map((name, i) => (
-                  <div className="lr-cell" key={name}>
-                    <span className="lr-bar" />
-                    <span className="lr-name mono">
-                      <i>{pad(i + 1)}</i>
-                      {name}
+                {STAGE_NAMES.map((name, index) => (
+                  <li
+                    className={name === 'Boot' ? 'lifecycle-phase lifecycle-phase-boot' : 'lifecycle-phase'}
+                    data-lifecycle-node
+                    data-lifecycle-phase={String(index + 1).padStart(2, '0')}
+                    key={name}
+                  >
+                    <span className="lifecycle-node-marker" data-lifecycle-marker aria-hidden="true" />
+                    <span className="lifecycle-phase-name">
+                      <i className="mono">{String(index + 1).padStart(2, '0')}</i>
+                      <strong>{name}</strong>
                     </span>
-                  </div>
-                ))}
-              </div>
 
-              <p className="lifecycle-caption" data-reveal>
-                <strong>Load → Validate → Register → Boot → Ready → Drain → Stop.</strong> Seven
-                phases, in that order, implemented in the Phase 002 kernel. Assembly is
-                synchronous; boot is asynchronous and rolls back what it started if a provider
-                refuses to come up.
-              </p>
-
-              <div className="operation-columns" data-stagger-group>
-                {OPERATION_COLUMNS.map((col) => (
-                  <article key={col.title}>
-                    <span className="op-index mono">{col.index}</span>
-                    <h3>{col.title}</h3>
-                    <p>
-                      {col.body} <em>{col.note}</em>
-                    </p>
-                  </article>
+                    {name === 'Boot' ? (
+                      <aside className="lifecycle-rollback" data-lifecycle-rollback>
+                        <i className="lifecycle-rollback-signal" aria-hidden="true" />
+                        <span className="mono">Failed boot / rollback branch</span>
+                        <strong>Rollback what started</strong>
+                        <p>Boot is asynchronous. Failed boot rolls back what it started.</p>
+                      </aside>
+                    ) : null}
+                  </li>
                 ))}
-              </div>
+              </ol>
             </div>
+          </div>
+
+          <div className="route-ledger" data-lifecycle-ledger>
+            <header className="route-ledger-head mono" aria-hidden="true">
+              <span>State</span>
+              <span>Evidence surface</span>
+              <span>Verified scope</span>
+            </header>
+            {ROUTE_LEDGER.map((item) => (
+              <article data-lifecycle-evidence-row key={item.title}>
+                <span className="route-state mono">{item.state}</span>
+                <h3>{item.title}</h3>
+                <p>{item.copy}</p>
+              </article>
+            ))}
           </div>
         </section>
 
-        {/* ============ BRAND WORLD FIGURE ============ */}
-        <figure className="world-figure" data-reveal>
-          {/* Plain <img>: this is a static export with the image optimiser disabled, so
-              next/image would emit the same tag after a round trip through a component that
-              exists to talk to a service this deployment does not run. */}
-          {/* eslint-disable @next/next/no-img-element */}
-          <img
-            className="only-light"
-            src="/assets/renvor-brand-world-v21-light-1254.png"
-            alt="The Ordered Register identity world: seven equal-width marine billets of rising, held, and falling heights above the words Load, Validate, Register, Boot, Ready, Drain, Stop"
-            width={1254}
-            height={1254}
-            loading="lazy"
-            decoding="async"
-          />
-          <img
-            className="only-dark"
-            src="/assets/renvor-brand-world-v21-dark-1254.png"
-            alt="The Ordered Register identity world: seven equal-width ice billets of rising, held, and falling heights above the words Load, Validate, Register, Boot, Ready, Drain, Stop"
-            width={1254}
-            height={1254}
-            loading="lazy"
-            decoding="async"
-          />
-          {/* eslint-enable @next/next/no-img-element */}
-          <figcaption className="mono">
-            Ordered Register — every stage leaves a readable proof.
-          </figcaption>
-        </figure>
-
-        {/* ============ EVALUATION LENS ============ */}
         <LensCarousel />
 
-        {/* ============ §05 PACKAGES ============ */}
-        <section id="packages" className="section package-section">
-          <div className="annot-grid">
-            <aside className="annot" data-reveal>
-              <span className="register-label mono">register 05 / packages</span>
-              <span className="roadmap-badge mono">Planned for Renvor 4.0</span>
-            </aside>
-            <div className="annot-content">
-              <div className="section-heading" data-reveal>
-                <h2>A package ecosystem designed for applications already in motion.</h2>
-              </div>
-              <p className="package-caveat" data-reveal>
-                <strong>None of these packages exists.</strong> The names below are reserved by
-                design, not published — neither <code>renvor</code> nor <code>renvor-cli</code> is
-                on crates.io.
-              </p>
-              <div className="package-rows" data-stagger-group>
-                {PACKAGES.map((name, i) => (
-                  <div key={name}>
-                    <span className="mono">crate {pad(i + 1)}</span>
-                    <strong>{name}</strong>
-                    <code className="unpublished-tag mono">not published</code>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ============ §06 SOURCE / CTA (opposite-theme band) ============ */}
         <section id="docs" className="docs-section docs-band">
-          <span className="docs-note note-tl mono" aria-hidden="true">
-            source / public
-          </span>
-          <span className="docs-note note-tr mono" aria-hidden="true">
-            kernel / tested
-          </span>
-          <span className="docs-note note-bl mono" aria-hidden="true">
-            release / none
-          </span>
-          <span className="docs-note note-br mono" aria-hidden="true">
-            governance / real
-          </span>
+          <div className="docs-rail" aria-hidden="true">
+            {/* eslint-disable @next/next/no-img-element */}
+            <img
+              className="only-light"
+              src="/assets/renvor-parallel-passage-v40-dark.svg"
+              alt=""
+              width={400}
+              height={400}
+            />
+            <img
+              className="only-dark"
+              src="/assets/renvor-parallel-passage-v40-light.svg"
+              alt=""
+              width={400}
+              height={400}
+            />
+            {/* eslint-enable @next/next/no-img-element */}
+          </div>
           <div className="docs-content" data-reveal>
             {/* eslint-disable @next/next/no-img-element */}
             <img
               className="docs-mark band-mark-dark-variant"
-              src="/assets/renvor-mark-v21-dark.svg"
+              src="/assets/renvor-mark-v40-dark.svg"
               alt=""
-              width={64}
-              height={64}
+              width={120}
+              height={123}
             />
             <img
               className="docs-mark band-mark-light-variant"
-              src="/assets/renvor-mark-v21.svg"
+              src="/assets/renvor-mark-v40-light.svg"
               alt=""
-              width={64}
-              height={64}
+              width={120}
+              height={123}
             />
             {/* eslint-enable @next/next/no-img-element */}
-            <p className="docs-state mono">In development — no release</p>
-            <h2>Follow the work. There is nothing to install yet.</h2>
+            <p className="docs-state mono">In development / prerelease</p>
+            <h2>Follow the route. Inspect the junction.</h2>
             <p className="docs-caveat">
-              No crate is published and the documentation site is <strong>not deployed</strong>.
-              What is public and readable today is the source, the governance, the verification
-              sequence, the plan — and a tested transport-independent kernel you can read, build,
-              and run the test suite against.
+              There is nothing to install. The source, governance, plan, tested kernel, CLI,
+              HTTP adapter, validation, persistence, authentication, and OpenAPI evidence are
+              public and readable today.
             </p>
             <div className="actions">
               <a className="btn-primary" href="https://github.com/renvor-rs/renvor">
-                Browse the source ↗
+                Browse the source
               </a>
-              <a
-                className="btn-secondary"
-                href="https://github.com/renvor-rs/renvor/blob/main/PLAN.md"
-              >
-                Read the plan ↗
+              <a className="btn-secondary" href="https://docs.renvor.dev/">
+                Read the documentation
               </a>
             </div>
           </div>
@@ -412,23 +548,24 @@ export default function Page() {
             {/* eslint-disable @next/next/no-img-element */}
             <img
               className="only-light"
-              src="/assets/renvor-mark-v21.svg"
+              src="/assets/renvor-favicon-v40-light.svg"
               alt=""
-              width={26}
-              height={26}
+              width={24}
+              height={24}
             />
             <img
               className="only-dark"
-              src="/assets/renvor-mark-v21-dark.svg"
+              src="/assets/renvor-favicon-v40-dark.svg"
               alt=""
-              width={26}
-              height={26}
+              width={24}
+              height={24}
             />
             {/* eslint-enable @next/next/no-img-element */}
-            <span>renvor — application infrastructure for Rust teams · in development</span>
+            <span>Renvor / Two routes. One junction.</span>
           </div>
           <nav aria-label="Footer" className="mono">
             <a href="https://github.com/renvor-rs/renvor">GitHub</a>
+            <a href="https://docs.renvor.dev/">Docs</a>
             <a href="https://github.com/renvor-rs/renvor/blob/main/PLAN.md">Plan</a>
             <a href="https://github.com/renvor-rs/renvor/blob/main/SECURITY.md">Security</a>
           </nav>
