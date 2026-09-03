@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="180" viewBox="0 0 400 180" role="img" aria-labelledby="title desc">
+  <title id="title">Renvor Parallel Passage - Transparent two-color</title>
+  <desc id="desc">Standalone transparent support device with two parallel 30-degree routes and zero intersections.</desc>
+  <path d="M24 50H120L170 79H376" fill="none" stroke="#171811" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M24 105H120L170 134H376" fill="none" stroke="#F0C400" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

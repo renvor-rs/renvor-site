@@ -15,23 +15,23 @@ export default function NotFound() {
       <Header />
       <main id="top" className="notfound-main">
         <section className="notfound">
-          <p className="register-label mono">404 / no such register entry</p>
+          <p className="section-kicker mono">404 / route not found</p>
           <h1>That page does not exist.</h1>
           <p>
             The link may be out of date, or the page may never have existed. Renvor is in active
             development and its public surface is still small.
           </p>
           <p className="notfound-status">
-            <strong>Renvor cannot be installed.</strong> Phase 002 delivers a tested
-            transport-independent kernel; no crate, release, CLI, network transport, database
-            adapter, or generated project is available yet.
+            <strong>Renvor has no supported installation path.</strong> Phases 002 through 009 implement and test
+            the kernel, CLI, HTTP transport, validation, persistence, and authentication. Nothing
+            is published, and the facade exposes neither persistence nor authentication.
           </p>
           <div className="actions">
             <a className="btn-primary" href="/">
               Back to the landing page
             </a>
             <a className="btn-secondary" href="https://github.com/renvor-rs/renvor">
-              Browse the source ↗
+              Browse the source
             </a>
           </div>
         </section>

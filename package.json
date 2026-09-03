@@ -9,8 +9,9 @@
     "serve": "node scripts/serve-static.mjs",
     "typecheck": "tsc --noEmit",
     "test:a11y": "playwright test",
+    "test:csp-control": "CSP_CONTROL=1 A11Y_PORT=3211 playwright test --project=csp-control",
     "check:links": "lychee --config lychee.toml --root-dir \"$PWD/out\" --no-progress 'out/**/*.html'",
-    "validate": "pnpm run typecheck && pnpm run build && pnpm run csp && pnpm run test:a11y && pnpm run check:links"
+    "validate": "pnpm run typecheck && pnpm run build && pnpm run csp && pnpm run test:a11y && pnpm run test:csp-control && pnpm run check:links"
   },
   "dependencies": {
     "gsap": "3.15.0",

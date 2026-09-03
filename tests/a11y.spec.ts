@@ -62,14 +62,15 @@ test.describe('landing route', () => {
 
   test('states the development status before any interaction', async ({ page }) => {
     // A release gate, not a copy check: PLAN.md §26.6 requires the page to say plainly that
-    // Renvor cannot be installed, and to say it somewhere a reader meets immediately.
+    // Renvor has no supported installation path, and to say it somewhere a reader meets immediately.
     await navigate(page, '/');
     await settle(page);
     const notice = page.getByRole('note', { name: 'Project status' });
     await expect(notice).toBeVisible();
-    await expect(notice).toContainText('cannot be installed');
-    await expect(notice).toContainText('Phase 002 delivers a tested transport-independent kernel');
-    await expect(notice).toContainText('No crate, release, CLI, network transport');
+    await expect(notice).toContainText('no supported installation path');
+    await expect(notice).toContainText('Phases 002 through 009 implement and test the kernel');
+    await expect(notice).toContainText('Nothing is published');
+    await expect(notice).toContainText('the facade exposes neither persistence nor authentication');
   });
 
   test('never presents an installable command', async ({ page }) => {

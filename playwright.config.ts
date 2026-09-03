@@ -18,6 +18,7 @@ import { defineConfig, devices } from '@playwright/test';
  * timeout around it. */
 const PORT = Number(process.env.A11Y_PORT ?? 3210);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
+const CSP_CONTROL_ENABLED = process.env.CSP_CONTROL === '1';
 
 export default defineConfig({
   testDir: './tests',
@@ -99,14 +100,18 @@ export default defineConfig({
     { name: 'firefox', use: { ...devices['Desktop Firefox'] }, testMatch: /browser\.spec\.ts/ },
     { name: 'webkit', use: { ...devices['Desktop Safari'] }, testMatch: /browser\.spec\.ts/ },
 
-    // Runs only when explicitly selected (`--project=csp-control`), because it needs the
-    // server started with CSP_CONTROL=1. Including it in the default run would fail every
-    // time, since without the injected script there is nothing for the control to catch.
-    {
-      name: 'csp-control',
-      use: { ...devices['Desktop Chrome'] },
-      testMatch: /csp-control\.spec\.ts/,
-    },
+    // The control project only exists in its dedicated invocation. This makes an unflagged
+    // `playwright test` the normal suite, while an attempted unflagged control run fails fast
+    // at project selection instead of producing a misleading test failure.
+    ...(CSP_CONTROL_ENABLED
+      ? [
+          {
+            name: 'csp-control',
+            use: { ...devices['Desktop Chrome'] },
+            testMatch: /csp-control\.spec\.ts/,
+          },
+        ]
+      : []),
   ],
 
   webServer: {
