@@ -508,6 +508,17 @@ export default function Page() {
             />
             {/* eslint-enable @next/next/no-img-element */}
           </div>
+          <svg
+            className="docs-echo"
+            viewBox="0 0 800 800"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <circle className="docs-echo-ring" cx="400" cy="400" r="150" />
+            <circle className="docs-echo-ring" cx="400" cy="400" r="150" />
+            <circle className="docs-echo-ring" cx="400" cy="400" r="150" />
+            <circle className="docs-orbit" cx="400" cy="400" r="252" />
+          </svg>
           <div className="docs-content" data-reveal>
             {/* eslint-disable @next/next/no-img-element */}
             <img
@@ -526,7 +537,9 @@ export default function Page() {
             />
             {/* eslint-enable @next/next/no-img-element */}
             <p className="docs-state mono">In development / prerelease</p>
-            <h2>Follow the route. Inspect the junction.</h2>
+            <h2>
+              Follow the route. Inspect the junction<span className="docs-accent">.</span>
+            </h2>
             <p className="docs-caveat">
               There is nothing to install. The source, governance, plan, tested kernel, CLI,
               HTTP adapter, validation, persistence, authentication, and OpenAPI evidence are

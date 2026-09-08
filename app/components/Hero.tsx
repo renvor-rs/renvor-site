@@ -160,7 +160,9 @@ export default function Hero() {
       const orbitField = new THREE.Group();
       // Keep the approved silhouette almost perfectly front-facing. The fixed micro-angle
       // reveals the extrusion without the warped frames produced by a continuous orbit.
-      orbitField.rotation.set(-0.018, -0.028, 0);
+      const BASE_TILT_X = -0.018;
+      const BASE_TILT_Y = -0.028;
+      orbitField.rotation.set(BASE_TILT_X, BASE_TILT_Y, 0);
       scene.add(orbitField);
 
       const markRoot = new THREE.Group();
@@ -254,12 +256,39 @@ export default function Hero() {
       const signalRailMotion = layerMotionGroups[1];
       if (!signalRailMotion) throw new Error('Rail Knot signal layer is unavailable.');
 
+      // Junction pulse rings: slow signal echoes radiating out from behind the mark. They are
+      // flat, transparent, and rendered before the extrusion, and they only move inside the
+      // RAF loop, so the motion control freezes them along with everything else.
+      const pulseRings: Array<{
+        mesh: ThreeNamespace.Mesh;
+        material: ThreeNamespace.MeshBasicMaterial;
+      }> = [];
+      for (let index = 0; index < 3; index += 1) {
+        const ringGeometry = new THREE.RingGeometry(2.92, 3.0, 96);
+        const ringMaterial = new THREE.MeshBasicMaterial({
+          color: index === 1 ? 0x171811 : 0xf0c400,
+          transparent: true,
+          opacity: 0,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        });
+        const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+        ring.position.z = -4.7;
+        ring.renderOrder = -1;
+        orbitField.add(ring);
+        geometries.push(ringGeometry);
+        materials.push(ringMaterial);
+        pulseRings.push({ mesh: ring, material: ringMaterial });
+      }
+      const inkRingMaterial = pulseRings[1]?.material;
+
       const applyTheme = () => {
         const dark = document.documentElement.getAttribute('data-theme') === 'dark';
         bodyFrontMaterial.color.set(dark ? 0xf5f6f2 : 0x171811);
         bodySideMaterial.color.set(dark ? 0xc8cabf : 0x35362f);
         separatorFrontMaterial.color.set(dark ? 0x171811 : 0xf5f6f2);
         separatorSideMaterial.color.set(dark ? 0x2a2b22 : 0xd8dad1);
+        inkRingMaterial?.color.set(dark ? 0xf5f6f2 : 0x171811);
       };
       applyTheme();
 
@@ -277,6 +306,31 @@ export default function Hero() {
       };
       layout();
       window.addEventListener('resize', layout);
+
+      // Pointer parallax: the mark leans a few hundredths of a radian toward the cursor. This
+      // is interactive feedback rather than a continuous loop, so it answers the pointer even
+      // while the ambient loop is paused; it is disabled entirely under reduced motion.
+      let tiltX: gsap.QuickToFunc | null = null;
+      let tiltY: gsap.QuickToFunc | null = null;
+      let onPointerMove: ((event: PointerEvent) => void) | null = null;
+      let onPointerLeave: (() => void) | null = null;
+      if (!reduced) {
+        tiltX = gsap.quickTo(orbitField.rotation, 'x', { duration: 0.9, ease: 'power3.out' });
+        tiltY = gsap.quickTo(orbitField.rotation, 'y', { duration: 0.9, ease: 'power3.out' });
+        onPointerMove = (event: PointerEvent) => {
+          const rect = hero.getBoundingClientRect();
+          const nx = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
+          const ny = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+          tiltY?.(BASE_TILT_Y + nx * 0.05);
+          tiltX?.(BASE_TILT_X + ny * 0.04);
+        };
+        onPointerLeave = () => {
+          tiltX?.(BASE_TILT_X);
+          tiltY?.(BASE_TILT_Y);
+        };
+        hero.addEventListener('pointermove', onPointerMove);
+        hero.addEventListener('pointerleave', onPointerLeave);
+      }
 
       const signalState = { progress: reduced ? 0.62 : 0 };
       let loopTimeline: gsap.core.Timeline | null = null;
@@ -310,7 +364,16 @@ export default function Hero() {
           // A slow key-light pass reveals the changing depth without rotating the mark.
           key.position.x = Math.sin(time * 0.46) * 4.4;
           key.position.y = 4.35 + Math.cos(time * 0.46) * 0.42;
-          signalRailSideMaterial.emissiveIntensity = 0.07 + weavePulse * 0.12;
+          signalRailSideMaterial.emissiveIntensity = 0.08 + weavePulse * 0.2;
+
+          // Signal echoes radiate from the junction: each ring swells and fades on a sine so
+          // the loop has no visible seam. Initial opacity is 0, so a reduced-motion render
+          // never shows a half-expanded ring.
+          pulseRings.forEach((ring, index) => {
+            const phase = (time * 0.16 + index / pulseRings.length) % 1;
+            ring.mesh.scale.setScalar(0.72 + phase * 0.62);
+            ring.material.opacity = Math.sin(phase * Math.PI) * 0.26;
+          });
 
           motionFrameCount += 1;
           if (motionFrameCount % 12 === 0) {
@@ -441,6 +504,10 @@ export default function Hero() {
 
       return () => {
         document.removeEventListener('visibilitychange', updatePlayback);
+        if (onPointerMove) hero.removeEventListener('pointermove', onPointerMove);
+        if (onPointerLeave) hero.removeEventListener('pointerleave', onPointerLeave);
+        tiltX?.tween.kill();
+        tiltY?.tween.kill();
         renderer.domElement.removeEventListener('webglcontextlost', onContextLost);
         visibility.disconnect();
         preferencesObserver.disconnect();

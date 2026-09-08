@@ -181,6 +181,15 @@ button:focus-visible,
   transform: translateY(-2px);
 }
 
+.btn-primary:hover {
+  box-shadow: 0 14px 30px -14px color-mix(in srgb, var(--accent) 72%, transparent);
+}
+
+.btn-primary:active,
+.btn-secondary:active {
+  transform: translateY(0) scale(0.98);
+}
+
 .btn-secondary:hover {
   border-color: var(--ink);
 }
@@ -197,7 +206,15 @@ button:focus-visible,
   gap: 2rem;
   padding: 0.7rem clamp(1rem, 4vw, 3.5rem);
   border-bottom: 1px solid var(--line);
-  background: var(--canvas);
+  background: color-mix(in srgb, var(--canvas) 96%, transparent);
+  backdrop-filter: blur(16px) saturate(1.35);
+  -webkit-backdrop-filter: blur(16px) saturate(1.35);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .site-header {
+    background: var(--canvas);
+  }
 }
 
 .brand {
@@ -222,12 +239,29 @@ button:focus-visible,
 }
 
 .site-nav a {
+  position: relative;
+  padding-bottom: 0.22rem;
   color: var(--ink-soft);
   text-decoration: none;
 }
 
+.site-nav a::after {
+  position: absolute;
+  right: 100%;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background: var(--accent);
+  content: '';
+  transition: right 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .site-nav a:hover {
   color: var(--ink);
+}
+
+.site-nav a:hover::after {
+  right: 0;
 }
 
 .site-preferences {
@@ -236,8 +270,7 @@ button:focus-visible,
   gap: 0.5rem;
 }
 
-.theme-toggle,
-.motion-toggle {
+.theme-toggle {
   display: inline-flex;
   min-height: 42px;
   align-items: center;
@@ -248,11 +281,12 @@ button:focus-visible,
   background: transparent;
   color: var(--ink);
   cursor: pointer;
+  transition: border-color 180ms ease, background-color 180ms ease;
 }
 
-.theme-toggle:hover,
-.motion-toggle:hover {
+.theme-toggle:hover {
   border-color: var(--ink);
+  background: color-mix(in srgb, var(--mist) 62%, transparent);
 }
 
 .preference-toggle-label {
@@ -301,6 +335,9 @@ button:focus-visible,
   overflow: hidden;
   pointer-events: none;
   contain: strict;
+  /* Soft vignette so the texture melts before it ever sits directly behind body copy. */
+  mask-image: radial-gradient(ellipse 120% 96% at 50% 38%, #000 42%, transparent 88%);
+  -webkit-mask-image: radial-gradient(ellipse 120% 96% at 50% 38%, #000 42%, transparent 88%);
 }
 
 .ambient-field-map {
@@ -309,6 +346,45 @@ button:focus-visible,
   max-width: none;
   height: 100%;
   overflow: visible;
+}
+
+.ambient-grid {
+  opacity: 0.55;
+}
+
+.ambient-grid-dot {
+  fill: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+
+.ambient-glow {
+  opacity: 0.5;
+}
+
+.ambient-glow-stop-accent {
+  stop-color: color-mix(in srgb, var(--accent) 13%, transparent);
+}
+
+.ambient-glow-stop-clear {
+  stop-color: var(--accent);
+  stop-opacity: 0;
+}
+
+.ambient-route-secondary {
+  stroke: color-mix(in srgb, var(--ink) 7%, transparent);
+}
+
+.ambient-halo {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1.25;
+}
+
+.ambient-halo-core {
+  stroke: color-mix(in srgb, var(--ink) 26%, transparent);
+}
+
+.ambient-halo-signal {
+  stroke: color-mix(in srgb, var(--accent) 42%, transparent);
 }
 
 .ambient-route,
@@ -394,7 +470,7 @@ button:focus-visible,
   align-items: center;
   width: min(100%, 1500px);
   margin: 0 auto;
-  padding: clamp(3.5rem, 7vh, 6.5rem) clamp(1rem, 4vw, 3.5rem) 1.6rem;
+  padding: clamp(3rem, 6vh, 5.5rem) clamp(1rem, 4vw, 3.5rem) 1.6rem;
 }
 
 .hero-copy {
@@ -421,6 +497,7 @@ button:focus-visible,
 .hero h1 {
   max-width: 8ch;
   font-size: clamp(3rem, 6.6vw, 5.5rem);
+  letter-spacing: -0.044em;
 }
 
 .hero-line {
@@ -474,6 +551,28 @@ button:focus-visible,
   overflow: hidden;
   border-top: 1px solid var(--line-strong);
   border-left: 1px solid var(--line-strong);
+}
+
+.hero-visual::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background:
+    linear-gradient(to right, var(--line) 1px, transparent 1px) 0 0 / 56px 56px,
+    linear-gradient(to bottom, var(--line) 1px, transparent 1px) 0 0 / 56px 56px;
+  content: '';
+  mask-image: radial-gradient(ellipse 92% 92% at 50% 50%, #000 28%, transparent 76%);
+  -webkit-mask-image: radial-gradient(ellipse 92% 92% at 50% 50%, #000 28%, transparent 76%);
+  opacity: 0.55;
+}
+
+.hero-visual::after {
+  position: absolute;
+  z-index: 4;
+  inset: 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  content: '';
+  pointer-events: none;
 }
 
 .hero-stage {
@@ -610,6 +709,8 @@ button:focus-visible,
   border-bottom: 1px solid var(--line);
   background: var(--ink);
   color: var(--canvas);
+  mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
 }
 
 .signal-loop-track {
@@ -640,7 +741,10 @@ button:focus-visible,
 }
 
 [data-motion='paused'] .signal-loop-track,
-[data-motion='paused'] .docs-rail img {
+[data-motion='paused'] .docs-rail img,
+[data-motion='paused'] .docs-mark,
+[data-motion='paused'] .docs-echo-ring,
+[data-motion='paused'] .docs-orbit {
   animation-play-state: paused;
 }
 
@@ -651,7 +755,7 @@ button:focus-visible,
   z-index: 2;
   width: min(100%, 1500px);
   margin: 0 auto;
-  padding: clamp(5rem, 10vw, 9rem) clamp(1rem, 4vw, 3.5rem);
+  padding: clamp(6rem, 11vw, 10rem) clamp(1rem, 4vw, 3.5rem);
 }
 
 .section-kicker,
@@ -949,6 +1053,12 @@ button:focus-visible,
 .proof-secondary,
 .proof-tertiary {
   grid-column: span 5;
+  transition: background-color 240ms ease;
+}
+
+.proof-secondary:hover,
+.proof-tertiary:hover {
+  background: var(--panel);
 }
 
 .proof-primary h3,
@@ -1135,6 +1245,7 @@ button:focus-visible,
   color: var(--meta);
   font-size: 0.76rem;
   cursor: pointer;
+  transition: background-color 220ms ease, color 220ms ease;
 }
 
 .solution-switcher button:last-child {
@@ -1291,7 +1402,7 @@ button:focus-visible,
   z-index: 2;
   width: min(100%, 1500px);
   margin: 0 auto;
-  padding: clamp(5rem, 10vw, 9rem) clamp(1rem, 4vw, 3.5rem);
+  padding: clamp(6rem, 11vw, 10rem) clamp(1rem, 4vw, 3.5rem);
   background: var(--ink);
   color: var(--canvas);
 }
@@ -1842,6 +1953,11 @@ button:focus-visible,
 .route-ledger article {
   padding: 1.35rem 0;
   border-bottom: 1px solid var(--line);
+  transition: background-color 220ms ease;
+}
+
+.route-ledger article:hover {
+  background: color-mix(in srgb, var(--mist) 55%, transparent);
 }
 
 .route-state {
@@ -1882,7 +1998,7 @@ button:focus-visible,
   align-items: end;
   width: min(100%, 1500px);
   margin: 0 auto;
-  padding: clamp(5rem, 10vw, 9rem) clamp(1rem, 4vw, 3.5rem);
+  padding: clamp(6rem, 11vw, 10rem) clamp(1rem, 4vw, 3.5rem);
   border-top: 1px solid var(--line-strong);
 }
 
@@ -1914,6 +2030,12 @@ button:focus-visible,
   background: transparent;
   color: var(--ink);
   cursor: pointer;
+  transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease,
+    transform 200ms ease;
+}
+
+.evaluation-controls button:active {
+  transform: scale(0.92);
 }
 
 .evaluation-controls button:hover {
@@ -1966,6 +2088,85 @@ button:focus-visible,
   color: var(--ink);
 }
 
+.docs-section::before {
+  position: absolute;
+  z-index: 3;
+  top: clamp(0.9rem, 2vw, 1.6rem);
+  left: clamp(0.9rem, 2vw, 1.6rem);
+  width: 34px;
+  height: 34px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+  content: '';
+  pointer-events: none;
+}
+
+.docs-section::after {
+  position: absolute;
+  z-index: 3;
+  inset: clamp(0.9rem, 2vw, 1.6rem);
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  content: '';
+  pointer-events: none;
+}
+
+.docs-echo {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: min(88vmin, 46rem);
+  height: min(88vmin, 46rem);
+  margin: auto;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.docs-echo-ring,
+.docs-orbit {
+  fill: none;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.docs-echo-ring {
+  stroke: color-mix(in srgb, var(--ink) 15%, transparent);
+  stroke-width: 1;
+  animation: docs-echo-pulse 7.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.docs-echo-ring:nth-child(2) {
+  animation-delay: 2.4s;
+}
+
+.docs-echo-ring:nth-child(3) {
+  animation-delay: 4.8s;
+}
+
+.docs-orbit {
+  stroke: color-mix(in srgb, var(--accent) 52%, transparent);
+  stroke-dasharray: 2 10;
+  stroke-width: 1.5;
+  animation: docs-orbit-rotate 48s linear infinite;
+}
+
+@keyframes docs-echo-pulse {
+  from {
+    opacity: 0.85;
+    transform: scale(0.5);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+
+@keyframes docs-orbit-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .docs-content {
   position: relative;
   z-index: 2;
@@ -1976,9 +2177,43 @@ button:focus-visible,
   text-align: center;
 }
 
+.docs-content::before {
+  position: absolute;
+  z-index: -1;
+  top: -4.5rem;
+  left: 50%;
+  width: 24rem;
+  height: 24rem;
+  max-width: 90vw;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--accent) 24%, transparent),
+    transparent 66%
+  );
+  content: '';
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.docs-accent {
+  color: var(--accent);
+}
+
 .docs-mark {
   width: 82px;
   height: auto;
+  animation: mark-float 7s ease-in-out infinite alternate;
+}
+
+@keyframes mark-float {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(-9px);
+  }
 }
 
 .docs-state {
@@ -1992,6 +2227,7 @@ button:focus-visible,
   margin-top: 1rem;
   color: var(--ink);
   font-size: clamp(2.5rem, 6vw, 5.5rem);
+  letter-spacing: -0.042em;
 }
 
 .docs-caveat {
@@ -2011,6 +2247,8 @@ button:focus-visible,
   inset: 0;
   opacity: 0.17;
   overflow: hidden;
+  mask-image: radial-gradient(ellipse 78% 72% at 50% 50%, #000 26%, transparent 74%);
+  -webkit-mask-image: radial-gradient(ellipse 78% 72% at 50% 50%, #000 26%, transparent 74%);
 }
 
 .docs-rail img {

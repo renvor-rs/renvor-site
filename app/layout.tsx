@@ -49,7 +49,7 @@ export const viewport: Viewport = {
 };
 
 /**
- * Applies the stored theme and continuous-motion preferences before first paint.
+ * Applies the stored theme preference before first paint.
  *
  * This has to be inline and synchronous: an external script is deferred past first paint, so
  * a reader with the dark theme stored would see a parchment flash on every navigation. That
@@ -61,11 +61,11 @@ export const viewport: Viewport = {
  * and editing this string without regenerating the policy fails the CSP check rather than
  * silently loosening it. `'unsafe-inline'` is never used.
  *
- * It touches only two attributes on `document.documentElement` and their matching
- * localStorage keys. Every branch has a fallback, so a blocked or failed read cannot leave
- * the page unstyled or moving against an explicit stored pause.
+ * It touches only one attribute on `document.documentElement` and its matching localStorage
+ * key. Every branch has a fallback, so a blocked or failed read cannot leave the page
+ * unstyled.
  */
-const preferencesScript = `(function(){var t='light',m='running';try{t=localStorage.getItem('renvor-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}m=localStorage.getItem('renvor-motion');if(m!=='paused'){m='running';}}catch(e){}document.documentElement.setAttribute('data-theme',t);document.documentElement.setAttribute('data-motion',m);})();`;
+const preferencesScript = `(function(){var t='light';try{t=localStorage.getItem('renvor-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}}catch(e){}document.documentElement.setAttribute('data-theme',t);})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
