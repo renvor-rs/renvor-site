@@ -1,8 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Moon, Pause, Play, Sun } from 'lucide-react';
-import { currentMotionPreference, type MotionPreference } from '../lib/motionPreference';
+import { Moon, Sun } from 'lucide-react';
 
 type Theme = 'light' | 'dark';
 
@@ -16,7 +15,6 @@ export default function Header() {
   // The real value is read in the effect below; the inline script in `layout.tsx` has already
   // set `data-theme` on <html> by then, so nothing flashes.
   const [theme, setTheme] = useState<Theme>('light');
-  const [motion, setMotion] = useState<MotionPreference>('running');
 
   // Hydration marker for the test suite, which waits on this rather than on a timeout — a
   // sleep long enough to be reliable is long enough to hide a regression, and `networkidle`
@@ -31,7 +29,6 @@ export default function Header() {
 
   useEffect(() => {
     setTheme(currentTheme());
-    setMotion(currentMotionPreference());
     setHydrated(true);
   }, []);
 
@@ -45,18 +42,6 @@ export default function Header() {
       // persistence is lost, which is the correct thing to degrade.
     }
     setTheme(next);
-  }, []);
-
-  const toggleMotion = useCallback(() => {
-    const next: MotionPreference =
-      currentMotionPreference() === 'paused' ? 'running' : 'paused';
-    document.documentElement.setAttribute('data-motion', next);
-    try {
-      localStorage.setItem('renvor-motion', next);
-    } catch {
-      // The control still applies to the current page when storage is unavailable.
-    }
-    setMotion(next);
   }, []);
 
   return (
@@ -91,22 +76,6 @@ export default function Header() {
         <a href="https://docs.renvor.dev/">Docs</a>
       </nav>
       <div className="site-preferences" role="group" aria-label="Display preferences">
-        <button
-          type="button"
-          className="motion-toggle"
-          onClick={toggleMotion}
-          aria-label="Animation playback"
-          aria-pressed={motion === 'running'}
-        >
-          {motion === 'paused' ? (
-            <Play className="glyph" aria-hidden="true" size={18} strokeWidth={1.6} />
-          ) : (
-            <Pause className="glyph" aria-hidden="true" size={18} strokeWidth={1.6} />
-          )}
-          <span className="preference-toggle-label mono">
-            {motion === 'paused' ? 'play' : 'pause'}
-          </span>
-        </button>
         <button
           type="button"
           className="theme-toggle"

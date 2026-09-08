@@ -28,7 +28,12 @@ const AMBIENT_FIELD = '[data-ambient-field]';
 const AMBIENT_SCENE = '[data-ambient-scene]';
 const AMBIENT_SIGNAL = '[data-ambient-signal]';
 const CSS_LOOPS = '.signal-loop-track, .docs-rail img';
-const MOTION_TOGGLE_NAME = 'Animation playback';
+
+async function setMotionPreference(page: Page, preference: 'running' | 'paused'): Promise<void> {
+  await page.evaluate((value) => {
+    document.documentElement.setAttribute('data-motion', value);
+  }, preference);
+}
 
 async function expectArchitectureTargets(page: Page): Promise<void> {
   await expect(page.locator(TRACE), 'the semantic request trace should render once').toHaveCount(1);
@@ -226,14 +231,10 @@ test.describe('reduced motion', () => {
 test.describe('motion enabled', () => {
   test.use({ contextOptions: { reducedMotion: 'no-preference' } });
 
-  test('offers one persistent control for every CSS animation loop', async ({ page }) => {
+  test('pauses every CSS animation loop while motion is paused', async ({ page }) => {
     await navigate(page, '/');
     await settle(page);
 
-    const toggle = page.getByRole('button', { name: MOTION_TOGGLE_NAME });
-    await expect(toggle).toBeVisible();
-    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    await expect(toggle).toContainText('pause');
     await expect(page.locator(CSS_LOOPS)).toHaveCount(3);
     expect(
       await page.locator(CSS_LOOPS).evaluateAll((elements) =>
@@ -241,26 +242,16 @@ test.describe('motion enabled', () => {
       ),
     ).toEqual(['running', 'running', 'running']);
 
-    await toggle.click();
+    await setMotionPreference(page, 'paused');
     await expect(page.locator('html')).toHaveAttribute('data-motion', 'paused');
-    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    await expect(toggle).toContainText('play');
     expect(
       await page.locator(CSS_LOOPS).evaluateAll((elements) =>
         elements.map((element) => getComputedStyle(element).animationPlayState),
       ),
     ).toEqual(['paused', 'paused', 'paused']);
 
-    await page.reload();
-    await settle(page);
-    await expect(page.locator('html')).toHaveAttribute('data-motion', 'paused');
-    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    await expect(toggle).toContainText('play');
-
-    await toggle.click();
+    await setMotionPreference(page, 'running');
     await expect(page.locator('html')).toHaveAttribute('data-motion', 'running');
-    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    await expect(toggle).toContainText('pause');
     expect(
       await page.locator(CSS_LOOPS).evaluateAll((elements) =>
         elements.map((element) => getComputedStyle(element).animationPlayState),
@@ -290,16 +281,16 @@ test.describe('motion enabled', () => {
       .toBeLessThan(0.6);
     expect(Number(await canvas.getAttribute('data-logo-scale'))).toBeLessThan(1.005);
 
-    await page.getByRole('button', { name: MOTION_TOGGLE_NAME }).click();
+    await setMotionPreference(page, 'paused');
     await expect(canvas).toHaveAttribute('data-motion-state', 'paused');
     const pausedFrame = Number(await canvas.getAttribute('data-loop-frame'));
     await page.waitForTimeout(180);
     expect(
       Number(await canvas.getAttribute('data-loop-frame')),
-      'the user control must stop the Three.js RAF loop while the hero remains visible',
+      'pausing motion must stop the Three.js RAF loop while the hero remains visible',
     ).toBe(pausedFrame);
 
-    await page.getByRole('button', { name: MOTION_TOGGLE_NAME }).click();
+    await setMotionPreference(page, 'running');
     await expect(canvas).toHaveAttribute('data-motion-state', 'running');
     await expect
       .poll(() => canvas.getAttribute('data-loop-frame').then(Number), { timeout: 2_000 })
@@ -411,7 +402,7 @@ test.describe('motion enabled', () => {
       .poll(() => board.getAttribute('data-current-phase'), { timeout: 10_000 })
       .not.toBe(firstPhase);
 
-    await page.getByRole('button', { name: MOTION_TOGGLE_NAME }).click();
+    await setMotionPreference(page, 'paused');
     await expect.poll(() => board.getAttribute('data-loop-state')).toBe('paused');
     const userPausedPhase = await board.getAttribute('data-current-phase');
     const userPausedCycle = await board.getAttribute('data-loop-cycle');
@@ -419,7 +410,7 @@ test.describe('motion enabled', () => {
     await expect(board).toHaveAttribute('data-current-phase', userPausedPhase ?? '');
     await expect(board).toHaveAttribute('data-loop-cycle', userPausedCycle ?? '');
 
-    await page.getByRole('button', { name: MOTION_TOGGLE_NAME }).click();
+    await setMotionPreference(page, 'running');
     await triggerLifecycleBoard(page);
     await expect.poll(() => board.getAttribute('data-loop-state')).toBe('running');
     await expect
@@ -452,13 +443,13 @@ test.describe('motion enabled', () => {
       .poll(() => field.getAttribute('data-ambient-progress').then(Number), { timeout: 10_000 })
       .toBeGreaterThan(0.02);
 
-    await page.getByRole('button', { name: MOTION_TOGGLE_NAME }).click();
+    await setMotionPreference(page, 'paused');
     await expect(field).toHaveAttribute('data-ambient-state', 'paused');
     const userPausedProgress = await field.getAttribute('data-ambient-progress');
     await page.waitForTimeout(450);
     await expect(field).toHaveAttribute('data-ambient-progress', userPausedProgress ?? '');
 
-    await page.getByRole('button', { name: MOTION_TOGGLE_NAME }).click();
+    await setMotionPreference(page, 'running');
     await expect(field).toHaveAttribute('data-ambient-state', 'running');
     await expect
       .poll(() => field.getAttribute('data-ambient-progress'), { timeout: 10_000 })
